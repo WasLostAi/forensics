@@ -62,8 +62,7 @@
     "html2canvas": "latest",
     "@solana/web3.js": "latest",
     "@supabase/supabase-js": "latest",
-    "webpack": "latest",
-    "tailwindcss": "latest"
+    "webpack": "latest"
   },
   "devDependencies": {
     "@types/node": "^22",
