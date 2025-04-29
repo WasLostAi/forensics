@@ -2,10 +2,13 @@
 
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
 import { useSettings } from "@/contexts/settings-context"
 import { EmptyState } from "@/components/empty-state"
 import { AlertCircle, Info } from "lucide-react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { TransactionFlowVisualization } from "@/components/transaction-flow-visualization"
+import { useRouter } from "next/navigation"
 
 interface TransactionFlowProps {
   walletAddress: string
@@ -15,12 +18,14 @@ interface TransactionNode {
   id: string
   label: string
   value: number
+  group?: number
 }
 
 interface TransactionLink {
   source: string
   target: string
   value: number
+  timestamp: string
 }
 
 interface TransactionFlowData {
@@ -29,11 +34,13 @@ interface TransactionFlowData {
 }
 
 export function TransactionFlow({ walletAddress }: TransactionFlowProps) {
+  const router = useRouter()
   const { useMockData } = useSettings()
   const [data, setData] = useState<TransactionFlowData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [dataSource, setDataSource] = useState<"api" | "mock" | "database">("api")
+  const [viewMode, setViewMode] = useState<"graph" | "list">("graph")
 
   useEffect(() => {
     async function fetchData() {
@@ -90,10 +97,11 @@ export function TransactionFlow({ walletAddress }: TransactionFlowProps) {
     ]
 
     // Create nodes
-    const nodes: TransactionNode[] = addresses.map((address) => ({
+    const nodes: TransactionNode[] = addresses.map((address, index) => ({
       id: address,
       label: address === centralAddress ? "Main Wallet" : `Wallet ${address.substring(0, 4)}...`,
       value: Math.floor(Math.random() * 100) + 10,
+      group: address === centralAddress ? 1 : (index % 3) + 2,
     }))
 
     // Create links (transactions)
@@ -105,6 +113,7 @@ export function TransactionFlow({ walletAddress }: TransactionFlowProps) {
         source: addresses[i],
         target: centralAddress,
         value: Math.floor(Math.random() * 50) + 5,
+        timestamp: new Date(Date.now() - i * 86400000).toISOString(), // Past few days
       })
     }
 
@@ -114,10 +123,33 @@ export function TransactionFlow({ walletAddress }: TransactionFlowProps) {
         source: centralAddress,
         target: addresses[i],
         value: Math.floor(Math.random() * 30) + 5,
+        timestamp: new Date(Date.now() - i * 43200000).toISOString(), // Past few days
       })
     }
 
+    // Add some transactions between other wallets to make it more interesting
+    links.push({
+      source: addresses[1],
+      target: addresses[2],
+      value: Math.floor(Math.random() * 20) + 2,
+      timestamp: new Date(Date.now() - 129600000).toISOString(),
+    })
+
+    links.push({
+      source: addresses[3],
+      target: addresses[5],
+      value: Math.floor(Math.random() * 15) + 1,
+      timestamp: new Date(Date.now() - 172800000).toISOString(),
+    })
+
     return { nodes, links }
+  }
+
+  // Handle node click to navigate to wallet details
+  const handleNodeClick = (nodeId: string) => {
+    if (nodeId !== walletAddress) {
+      router.push(`/wallet/${nodeId}`)
+    }
   }
 
   if (loading) {
@@ -196,9 +228,19 @@ export function TransactionFlow({ walletAddress }: TransactionFlowProps) {
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Transaction Flow</CardTitle>
-        <CardDescription>Visualizing fund movements between wallets</CardDescription>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <div>
+          <CardTitle>Transaction Flow</CardTitle>
+          <CardDescription>Visualizing fund movements between wallets</CardDescription>
+        </div>
+        <div className="flex space-x-2">
+          <Button variant={viewMode === "graph" ? "default" : "outline"} size="sm" onClick={() => setViewMode("graph")}>
+            Graph
+          </Button>
+          <Button variant={viewMode === "list" ? "default" : "outline"} size="sm" onClick={() => setViewMode("list")}>
+            List
+          </Button>
+        </div>
       </CardHeader>
       <CardContent>
         {dataSource === "mock" && (
@@ -211,21 +253,36 @@ export function TransactionFlow({ walletAddress }: TransactionFlowProps) {
           </Alert>
         )}
 
-        <div className="border rounded-md p-4">
-          <h3 className="font-medium mb-2">Transaction Flow Summary</h3>
-          <p className="text-sm text-muted-foreground mb-4">
-            {data.nodes.length} wallets and {data.links.length} transactions found
-          </p>
-          <div className="space-y-2">
-            {data.links.map((link, index) => (
-              <div key={index} className="text-sm">
-                <span className="font-mono">{link.source.substring(0, 4)}...</span> →{" "}
-                <span className="font-mono">{link.target.substring(0, 4)}...</span>:{" "}
-                <span className="font-medium">{link.value} SOL</span>
-              </div>
-            ))}
+        {viewMode === "graph" ? (
+          <div className="space-y-4">
+            <div className="text-sm text-muted-foreground">
+              <span className="font-medium">Tip:</span> Click on a wallet node to view its details. Use the controls to
+              zoom and pan the visualization.
+            </div>
+            <TransactionFlowVisualization nodes={data.nodes} links={data.links} onNodeClick={handleNodeClick} />
           </div>
-        </div>
+        ) : (
+          <div className="border rounded-md p-4">
+            <h3 className="font-medium mb-2">Transaction Flow Summary</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              {data.nodes.length} wallets and {data.links.length} transactions found
+            </p>
+            <div className="space-y-2">
+              {data.links.map((link, index) => (
+                <div key={index} className="text-sm p-2 border border-border/50 rounded-md hover:bg-muted/30">
+                  <div className="flex justify-between">
+                    <div>
+                      <span className="font-mono">{link.source.substring(0, 4)}...</span> →{" "}
+                      <span className="font-mono">{link.target.substring(0, 4)}...</span>
+                    </div>
+                    <span className="font-medium">{link.value} SOL</span>
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-1">{new Date(link.timestamp).toLocaleString()}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="mt-4">
           <h3 className="text-sm font-medium mb-2">About Transaction Flow</h3>
