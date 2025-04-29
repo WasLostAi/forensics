@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Plus, Pencil, Trash2, AlertTriangle, Search } from "lucide-react"
+import { Plus, Pencil, Trash2, AlertTriangle, CheckCircle2 } from "lucide-react"
 import {
   Dialog,
   DialogContent,
@@ -19,6 +19,8 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Slider } from "@/components/ui/slider"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Textarea } from "@/components/ui/textarea"
 import { fetchEntityLabelsFromDB, saveEntityLabel, updateEntityLabel, deleteEntityLabel } from "@/lib/entity-service"
 import { searchEntities } from "@/lib/entity-database"
 import type { EntityLabel } from "@/types/entity"
@@ -26,19 +28,32 @@ import type { EntityLabel } from "@/types/entity"
 interface EntityLabelManagementProps {
   walletAddress?: string
   onLabelsChange?: () => void
+  searchQuery?: string
+  categoryFilter?: string
 }
 
-export function EntityLabelManagement({ walletAddress, onLabelsChange }: EntityLabelManagementProps) {
+export function EntityLabelManagement({
+  walletAddress,
+  onLabelsChange,
+  searchQuery = "",
+  categoryFilter,
+}: EntityLabelManagementProps) {
   const [labels, setLabels] = useState<EntityLabel[]>([])
+  const [filteredLabels, setFilteredLabels] = useState<EntityLabel[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [searchQuery, setSearchQuery] = useState("")
   const [searchResults, setSearchResults] = useState<any[]>([])
+  const [selectedLabels, setSelectedLabels] = useState<string[]>([])
+  const [sortConfig, setSortConfig] = useState<{
+    key: keyof EntityLabel | null
+    direction: "ascending" | "descending"
+  }>({ key: null, direction: "ascending" })
 
   // Form state
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [isBulkDeleteDialogOpen, setIsBulkDeleteDialogOpen] = useState(false)
   const [currentLabel, setCurrentLabel] = useState<EntityLabel | null>(null)
   const [formData, setFormData] = useState({
     address: "",
@@ -48,6 +63,8 @@ export function EntityLabelManagement({ walletAddress, onLabelsChange }: EntityL
     source: "user",
     notes: "",
     tags: "",
+    riskScore: 0,
+    verified: false,
   })
 
   // Load labels
@@ -55,9 +72,50 @@ export function EntityLabelManagement({ walletAddress, onLabelsChange }: EntityL
     loadLabels()
   }, [walletAddress])
 
+  // Filter and search labels
+  useEffect(() => {
+    if (!labels.length) return
+
+    let result = [...labels]
+
+    // Apply category filter
+    if (categoryFilter) {
+      result = result.filter((label) => label.category === categoryFilter)
+    }
+
+    // Apply search query
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase()
+      result = result.filter(
+        (label) =>
+          label.label.toLowerCase().includes(query) ||
+          label.address.toLowerCase().includes(query) ||
+          label.category.toLowerCase().includes(query) ||
+          label.source.toLowerCase().includes(query) ||
+          (label.notes && label.notes.toLowerCase().includes(query)) ||
+          (label.tags && label.tags.some((tag) => tag.toLowerCase().includes(query))),
+      )
+    }
+
+    // Apply sorting
+    if (sortConfig.key) {
+      result.sort((a, b) => {
+        if (a[sortConfig.key!] < b[sortConfig.key!]) {
+          return sortConfig.direction === "ascending" ? -1 : 1
+        }
+        if (a[sortConfig.key!] > b[sortConfig.key!]) {
+          return sortConfig.direction === "ascending" ? 1 : -1
+        }
+        return 0
+      })
+    }
+
+    setFilteredLabels(result)
+  }, [labels, searchQuery, categoryFilter, sortConfig])
+
   // Search known entities when query changes
   useEffect(() => {
-    if (searchQuery.trim().length > 2) {
+    if (searchQuery && searchQuery.trim().length > 2) {
       const results = searchEntities(searchQuery)
       setSearchResults(results)
     } else {
@@ -87,6 +145,8 @@ export function EntityLabelManagement({ walletAddress, onLabelsChange }: EntityL
             source: "community",
             createdAt: "2023-05-15T14:23:45Z",
             updatedAt: "2023-05-15T14:23:45Z",
+            verified: true,
+            riskScore: 10,
           },
           {
             id: "2",
@@ -97,6 +157,7 @@ export function EntityLabelManagement({ walletAddress, onLabelsChange }: EntityL
             source: "algorithm",
             createdAt: "2023-06-22T09:12:33Z",
             updatedAt: "2023-06-22T09:12:33Z",
+            riskScore: 35,
           },
           {
             id: "3",
@@ -107,11 +168,40 @@ export function EntityLabelManagement({ walletAddress, onLabelsChange }: EntityL
             source: "user",
             createdAt: "2023-07-10T16:45:12Z",
             updatedAt: "2023-07-10T16:45:12Z",
+            riskScore: 85,
+            tags: ["high-risk", "mixer"],
+          },
+          {
+            id: "4",
+            address: "7YttLkHDoNj9wyDur5pM1ejNaAvT9X4eqaYcHQqtj2G5",
+            label: "Solana Foundation",
+            category: "contract",
+            confidence: 1.0,
+            source: "database",
+            createdAt: "2023-04-05T10:30:22Z",
+            updatedAt: "2023-04-05T10:30:22Z",
+            verified: true,
+            riskScore: 5,
+            tags: ["verified", "foundation"],
+          },
+          {
+            id: "5",
+            address: "3XMrhbv989VxAMi3DErLV9eJht1pHppW5LbKxe9fkEFR",
+            label: "Phishing Contract",
+            category: "scam",
+            confidence: 0.92,
+            source: "community",
+            createdAt: "2023-08-18T21:15:40Z",
+            updatedAt: "2023-08-18T21:15:40Z",
+            riskScore: 95,
+            tags: ["phishing", "scam", "high-risk"],
+            notes: "Known phishing contract that steals tokens by requesting unlimited approvals",
           },
         ]
       }
 
       setLabels(data)
+      setFilteredLabels(data)
     } catch (error) {
       console.error("Failed to load entity labels:", error)
       setError("Failed to load entity labels. Please try again.")
@@ -143,6 +233,8 @@ export function EntityLabelManagement({ walletAddress, onLabelsChange }: EntityL
         source: formData.source as "user" | "community" | "algorithm",
         notes: formData.notes,
         tags: formData.tags ? formData.tags.split(",").map((tag) => tag.trim()) : undefined,
+        riskScore: formData.riskScore,
+        verified: formData.verified,
       })
 
       setLabels([...labels, newLabelObj])
@@ -173,6 +265,8 @@ export function EntityLabelManagement({ walletAddress, onLabelsChange }: EntityL
         source: formData.source as "user" | "community" | "algorithm",
         notes: formData.notes,
         tags: formData.tags ? formData.tags.split(",").map((tag) => tag.trim()) : undefined,
+        riskScore: formData.riskScore,
+        verified: formData.verified,
       })
 
       setLabels(labels.map((label) => (label.id === currentLabel.id ? updatedLabel : label)))
@@ -202,6 +296,23 @@ export function EntityLabelManagement({ walletAddress, onLabelsChange }: EntityL
     }
   }
 
+  const handleBulkDelete = async () => {
+    try {
+      // In a real implementation, you might want to use a batch delete operation
+      for (const id of selectedLabels) {
+        await deleteEntityLabel(id)
+      }
+
+      setLabels(labels.filter((label) => !selectedLabels.includes(label.id)))
+      setSelectedLabels([])
+      setIsBulkDeleteDialogOpen(false)
+      if (onLabelsChange) onLabelsChange()
+    } catch (error) {
+      console.error("Failed to delete labels:", error)
+      setError("Failed to delete labels. Please try again.")
+    }
+  }
+
   const handleAddKnownEntity = async (entity: any) => {
     try {
       const address = walletAddress || formData.address
@@ -222,7 +333,6 @@ export function EntityLabelManagement({ walletAddress, onLabelsChange }: EntityL
       })
 
       setLabels([...labels, newLabelObj])
-      setSearchQuery("")
       setSearchResults([])
       if (onLabelsChange) onLabelsChange()
     } catch (error) {
@@ -241,6 +351,8 @@ export function EntityLabelManagement({ walletAddress, onLabelsChange }: EntityL
       source: label.source,
       notes: label.notes || "",
       tags: label.tags ? label.tags.join(", ") : "",
+      riskScore: label.riskScore || 0,
+      verified: label.verified || false,
     })
     setIsEditDialogOpen(true)
   }
@@ -259,10 +371,36 @@ export function EntityLabelManagement({ walletAddress, onLabelsChange }: EntityL
       source: "user",
       notes: "",
       tags: "",
+      riskScore: 0,
+      verified: false,
     })
-    setSearchQuery("")
-    setSearchResults([])
     setError(null)
+  }
+
+  const handleSort = (key: keyof EntityLabel) => {
+    let direction: "ascending" | "descending" = "ascending"
+
+    if (sortConfig.key === key && sortConfig.direction === "ascending") {
+      direction = "descending"
+    }
+
+    setSortConfig({ key, direction })
+  }
+
+  const toggleSelectAll = () => {
+    if (selectedLabels.length === filteredLabels.length) {
+      setSelectedLabels([])
+    } else {
+      setSelectedLabels(filteredLabels.map((label) => label.id))
+    }
+  }
+
+  const toggleSelectLabel = (id: string) => {
+    if (selectedLabels.includes(id)) {
+      setSelectedLabels(selectedLabels.filter((labelId) => labelId !== id))
+    } else {
+      setSelectedLabels([...selectedLabels, id])
+    }
   }
 
   const getCategoryColor = (category: string) => {
@@ -280,6 +418,12 @@ export function EntityLabelManagement({ walletAddress, onLabelsChange }: EntityL
       default:
         return "bg-gray-500"
     }
+  }
+
+  const getRiskColor = (score: number) => {
+    if (score >= 70) return "bg-red-500"
+    if (score >= 40) return "bg-yellow-500"
+    return "bg-green-500"
   }
 
   const getSourceIcon = (source: string) => {
@@ -324,16 +468,27 @@ export function EntityLabelManagement({ walletAddress, onLabelsChange }: EntityL
       )}
 
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">Entity Labels</h2>
-        <Button
-          onClick={() => {
-            resetForm()
-            setIsAddDialogOpen(true)
-          }}
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          Add Label
-        </Button>
+        <div className="flex items-center gap-2">
+          <h2 className="text-2xl font-bold">Entity Labels</h2>
+          <Badge variant="outline">{filteredLabels.length}</Badge>
+        </div>
+        <div className="flex gap-2">
+          {selectedLabels.length > 0 && (
+            <Button variant="destructive" size="sm" onClick={() => setIsBulkDeleteDialogOpen(true)}>
+              <Trash2 className="mr-2 h-4 w-4" />
+              Delete Selected ({selectedLabels.length})
+            </Button>
+          )}
+          <Button
+            onClick={() => {
+              resetForm()
+              setIsAddDialogOpen(true)
+            }}
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Add Label
+          </Button>
+        </div>
       </div>
 
       <Card className="bg-card/80 backdrop-blur-sm">
@@ -341,32 +496,60 @@ export function EntityLabelManagement({ walletAddress, onLabelsChange }: EntityL
           <Table>
             <TableHeader className="bg-secondary/20 backdrop-blur-sm">
               <TableRow>
-                <TableHead>Label</TableHead>
-                <TableHead>Category</TableHead>
-                <TableHead>Confidence</TableHead>
+                <TableHead className="w-[50px]">
+                  <Checkbox
+                    checked={selectedLabels.length === filteredLabels.length && filteredLabels.length > 0}
+                    onCheckedChange={toggleSelectAll}
+                    aria-label="Select all"
+                  />
+                </TableHead>
+                <TableHead className="cursor-pointer" onClick={() => handleSort("label")}>
+                  Label {sortConfig.key === "label" && (sortConfig.direction === "ascending" ? "↑" : "↓")}
+                </TableHead>
+                <TableHead className="cursor-pointer" onClick={() => handleSort("category")}>
+                  Category {sortConfig.key === "category" && (sortConfig.direction === "ascending" ? "↑" : "↓")}
+                </TableHead>
+                <TableHead className="cursor-pointer" onClick={() => handleSort("confidence")}>
+                  Confidence {sortConfig.key === "confidence" && (sortConfig.direction === "ascending" ? "↑" : "↓")}
+                </TableHead>
                 <TableHead>Source</TableHead>
                 {!walletAddress && <TableHead>Address</TableHead>}
-                <TableHead>Date Added</TableHead>
+                <TableHead className="cursor-pointer" onClick={() => handleSort("riskScore")}>
+                  Risk {sortConfig.key === "riskScore" && (sortConfig.direction === "ascending" ? "↑" : "↓")}
+                </TableHead>
+                <TableHead className="cursor-pointer" onClick={() => handleSort("createdAt")}>
+                  Date Added {sortConfig.key === "createdAt" && (sortConfig.direction === "ascending" ? "↑" : "↓")}
+                </TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={walletAddress ? 6 : 7} className="h-24 text-center">
+                  <TableCell colSpan={walletAddress ? 8 : 9} className="h-24 text-center">
                     Loading entity labels...
                   </TableCell>
                 </TableRow>
-              ) : labels.length === 0 ? (
+              ) : filteredLabels.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={walletAddress ? 6 : 7} className="h-24 text-center">
+                  <TableCell colSpan={walletAddress ? 8 : 9} className="h-24 text-center">
                     No entity labels found.
                   </TableCell>
                 </TableRow>
               ) : (
-                labels.map((label) => (
+                filteredLabels.map((label) => (
                   <TableRow key={label.id}>
-                    <TableCell className="font-medium">{label.label}</TableCell>
+                    <TableCell>
+                      <Checkbox
+                        checked={selectedLabels.includes(label.id)}
+                        onCheckedChange={() => toggleSelectLabel(label.id)}
+                        aria-label={`Select ${label.label}`}
+                      />
+                    </TableCell>
+                    <TableCell className="font-medium flex items-center gap-2">
+                      {label.label}
+                      {label.verified && <CheckCircle2 className="h-4 w-4 text-blue-500" title="Verified" />}
+                    </TableCell>
                     <TableCell>
                       <Badge className={`${getCategoryColor(label.category)} text-white`}>{label.category}</Badge>
                     </TableCell>
@@ -377,6 +560,11 @@ export function EntityLabelManagement({ walletAddress, onLabelsChange }: EntityL
                         {label.address.slice(0, 4)}...{label.address.slice(-4)}
                       </TableCell>
                     )}
+                    <TableCell>
+                      {label.riskScore !== undefined && (
+                        <Badge className={`${getRiskColor(label.riskScore)} text-white`}>{label.riskScore}</Badge>
+                      )}
+                    </TableCell>
                     <TableCell>{new Date(label.createdAt).toLocaleDateString()}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
@@ -494,6 +682,43 @@ export function EntityLabelManagement({ walletAddress, onLabelsChange }: EntityL
             </div>
 
             <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="riskScore" className="text-right">
+                Risk Score
+              </Label>
+              <div className="col-span-3 flex items-center gap-4">
+                <Slider
+                  id="riskScore"
+                  min={0}
+                  max={100}
+                  step={5}
+                  value={[formData.riskScore]}
+                  onValueChange={(value) => setFormData({ ...formData, riskScore: value[0] })}
+                  className="flex-1"
+                />
+                <span className="w-12 text-center">{formData.riskScore}</span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="verified" className="text-right">
+                Verified
+              </Label>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="verified"
+                  checked={formData.verified}
+                  onCheckedChange={(checked) => setFormData({ ...formData, verified: checked === true })}
+                />
+                <label
+                  htmlFor="verified"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                >
+                  Mark as verified entity
+                </label>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="tags" className="text-right">
                 Tags
               </Label>
@@ -506,70 +731,19 @@ export function EntityLabelManagement({ walletAddress, onLabelsChange }: EntityL
               />
             </div>
 
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="notes" className="text-right">
+            <div className="grid grid-cols-4 items-start gap-4">
+              <Label htmlFor="notes" className="text-right pt-2">
                 Notes
               </Label>
-              <Input
+              <Textarea
                 id="notes"
                 value={formData.notes}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                 className="col-span-3"
                 placeholder="Additional information about this entity"
+                rows={3}
               />
             </div>
-
-            {/* Search Known Entities */}
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="search" className="text-right">
-                Search Known
-              </Label>
-              <div className="col-span-3 relative">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="search"
-                  placeholder="Search known entities..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-8"
-                />
-              </div>
-            </div>
-
-            {searchResults.length > 0 && (
-              <div className="col-span-4 border rounded-md mt-2 max-h-40 overflow-y-auto">
-                <Table>
-                  <TableBody>
-                    {searchResults.map((entity) => (
-                      <TableRow
-                        key={entity.address}
-                        className="cursor-pointer hover:bg-muted"
-                        onClick={() => {
-                          setFormData({
-                            ...formData,
-                            label: entity.name,
-                            category: entity.category,
-                            source: "database",
-                            notes: entity.description || "",
-                            tags: entity.tags ? entity.tags.join(", ") : "",
-                          })
-                          setSearchQuery("")
-                          setSearchResults([])
-                        }}
-                      >
-                        <TableCell className="py-2">
-                          <div className="font-medium">{entity.name}</div>
-                          <div className="text-xs text-muted-foreground">{entity.description}</div>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Badge className={`${getCategoryColor(entity.category)} text-white`}>{entity.category}</Badge>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
           </div>
 
           <DialogFooter>
@@ -660,6 +834,43 @@ export function EntityLabelManagement({ walletAddress, onLabelsChange }: EntityL
             </div>
 
             <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="edit-riskScore" className="text-right">
+                Risk Score
+              </Label>
+              <div className="col-span-3 flex items-center gap-4">
+                <Slider
+                  id="edit-riskScore"
+                  min={0}
+                  max={100}
+                  step={5}
+                  value={[formData.riskScore]}
+                  onValueChange={(value) => setFormData({ ...formData, riskScore: value[0] })}
+                  className="flex-1"
+                />
+                <span className="w-12 text-center">{formData.riskScore}</span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="edit-verified" className="text-right">
+                Verified
+              </Label>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="edit-verified"
+                  checked={formData.verified}
+                  onCheckedChange={(checked) => setFormData({ ...formData, verified: checked === true })}
+                />
+                <label
+                  htmlFor="edit-verified"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                >
+                  Mark as verified entity
+                </label>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="edit-tags" className="text-right">
                 Tags
               </Label>
@@ -672,16 +883,17 @@ export function EntityLabelManagement({ walletAddress, onLabelsChange }: EntityL
               />
             </div>
 
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="edit-notes" className="text-right">
+            <div className="grid grid-cols-4 items-start gap-4">
+              <Label htmlFor="edit-notes" className="text-right pt-2">
                 Notes
               </Label>
-              <Input
+              <Textarea
                 id="edit-notes"
                 value={formData.notes}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                 className="col-span-3"
                 placeholder="Additional information about this entity"
+                rows={3}
               />
             </div>
           </div>
@@ -711,6 +923,27 @@ export function EntityLabelManagement({ walletAddress, onLabelsChange }: EntityL
             </Button>
             <Button variant="destructive" onClick={handleDeleteLabel}>
               Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Bulk Delete Confirmation Dialog */}
+      <Dialog open={isBulkDeleteDialogOpen} onOpenChange={setIsBulkDeleteDialogOpen}>
+        <DialogContent className="sm:max-w-[425px] bg-card/95 backdrop-blur-lg">
+          <DialogHeader>
+            <DialogTitle>Confirm Bulk Deletion</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete {selectedLabels.length} selected labels? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+
+          <DialogFooter className="mt-4">
+            <Button variant="outline" onClick={() => setIsBulkDeleteDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleBulkDelete}>
+              Delete {selectedLabels.length} Labels
             </Button>
           </DialogFooter>
         </DialogContent>
