@@ -1,24 +1,33 @@
 "use client"
 
 import { useSettings } from "@/contexts/settings-context"
+import { Database, WifiOff } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Info } from "lucide-react"
-import Link from "next/link"
 
 export function MockModeBanner() {
-  const { useMockData } = useSettings()
+  const { useMockData, apiStatus } = useSettings()
 
-  if (!useMockData) return null
+  if (!useMockData && apiStatus !== "network-error") {
+    return null
+  }
 
   return (
-    <Alert className="mb-6 bg-amber-500/10 text-amber-500 border-amber-500/20">
-      <Info className="h-4 w-4" />
-      <AlertDescription>
-        <span className="font-medium">Mock Mode Active:</span> You're viewing simulated data for demonstration purposes.{" "}
-        <Link href="/settings" className="underline underline-offset-2">
-          Disable in Settings
-        </Link>
-      </AlertDescription>
+    <Alert variant="warning" className="mb-4">
+      {apiStatus === "network-error" ? (
+        <>
+          <WifiOff className="h-4 w-4" />
+          <AlertDescription>
+            <strong>Network Error:</strong> Unable to connect to the Arkham API. Using mock data instead.
+          </AlertDescription>
+        </>
+      ) : (
+        <>
+          <Database className="h-4 w-4" />
+          <AlertDescription>
+            <strong>Mock Mode:</strong> Using simulated data for demonstration purposes.
+          </AlertDescription>
+        </>
+      )}
     </Alert>
   )
 }

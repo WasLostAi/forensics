@@ -4,44 +4,54 @@ import type React from "react"
 import { createContext, useContext, useState, useEffect } from "react"
 import { validateArkhamCredentials } from "@/lib/arkham-api"
 
-interface SettingsContextType {
+type SettingsContextType = {
   useMockData: boolean
   setUseMockData: (value: boolean) => void
-  apiCredentialsValid: boolean | null
-  apiErrorMessage: string | null
+  apiStatus: "unchecked" | "checking" | "valid" | "invalid" | "network-error"
+  apiError: string | null
   checkApiCredentials: () => Promise<void>
-  isLoading: boolean
+  isCheckingApi: boolean
 }
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined)
 
 export function SettingsProvider({ children }: { children: React.ReactNode }) {
-  const [useMockData, setUseMockData] = useState(true) // Default to true to avoid API errors
-  const [apiCredentialsValid, setApiCredentialsValid] = useState<boolean | null>(null)
-  const [apiErrorMessage, setApiErrorMessage] = useState<string | null>(null)
-  const [isLoading, setIsLoading] = useState(false)
+  const [useMockData, setUseMockData] = useState(true) // Default to true for better UX
+  const [apiStatus, setApiStatus] = useState<"unchecked" | "checking" | "valid" | "invalid" | "network-error">(
+    "unchecked",
+  )
+  const [apiError, setApiError] = useState<string | null>(null)
+  const [isCheckingApi, setIsCheckingApi] = useState(false)
 
-  // Load settings from localStorage on mount
-  useEffect(() => {
-    const savedSettings = localStorage.getItem("walletForensicsSettings")
-    if (savedSettings) {
-      try {
-        const parsedSettings = JSON.parse(savedSettings)
-        setUseMockData(parsedSettings.useMockData ?? true)
-      } catch (e) {
-        console.error("Failed to parse saved settings:", e)
+  // Function to check API credentials
+  const checkApiCredentials = async () => {
+    try {
+      setIsCheckingApi(true)
+      setApiStatus("checking")
+
+      const result = await validateArkhamCredentials()
+
+      if (result.success) {
+        setApiStatus("valid")
+        setApiError(null)
+      } else if (result.networkError) {
+        setApiStatus("network-error")
+        setApiError(result.error || "Network connection error")
+      } else {
+        setApiStatus("invalid")
+        setApiError(result.error || "Invalid API credentials")
       }
+    } catch (error: any) {
+      console.error("Error checking API credentials:", error)
+      setApiStatus("invalid")
+      setApiError(error.message || "Unknown error")
+    } finally {
+      setIsCheckingApi(false)
     }
-  }, [])
+  }
 
-  // Save settings to localStorage when they change
+  // Check API credentials on mount, but with a delay to not block initial render
   useEffect(() => {
-    localStorage.setItem("walletForensicsSettings", JSON.stringify({ useMockData }))
-  }, [useMockData])
-
-  // Check API credentials on mount, but don't block rendering
-  useEffect(() => {
-    // Use a delayed check to avoid blocking initial render
     const timer = setTimeout(() => {
       checkApiCredentials()
     }, 1000)
@@ -49,53 +59,33 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     return () => clearTimeout(timer)
   }, [])
 
-  const checkApiCredentials = async () => {
-    if (isLoading) return
-
-    setIsLoading(true)
-    setApiErrorMessage(null)
-
-    try {
-      const result = await validateArkhamCredentials()
-      setApiCredentialsValid(result.valid)
-
-      if (!result.valid) {
-        let errorMsg = "API credentials are invalid or not configured."
-
-        if (result.reason === "network_error") {
-          errorMsg = "Cannot connect to Arkham API. Please check your internet connection."
-        } else if (result.reason === "timeout") {
-          errorMsg = "Connection to Arkham API timed out. Please try again later."
-        } else if (result.reason === "fetch_error") {
-          errorMsg = `Error connecting to API: ${result.error || "Unknown error"}`
-        }
-
-        setApiErrorMessage(errorMsg)
-
-        // If credentials are invalid, default to mock data
-        if (!useMockData) {
-          setUseMockData(true)
-        }
+  // Load settings from localStorage
+  useEffect(() => {
+    const savedSettings = localStorage.getItem("solanaForensicsSettings")
+    if (savedSettings) {
+      try {
+        const settings = JSON.parse(savedSettings)
+        setUseMockData(settings.useMockData ?? true)
+      } catch (e) {
+        console.error("Error parsing saved settings:", e)
       }
-    } catch (error) {
-      console.error("Error checking API credentials:", error)
-      setApiCredentialsValid(false)
-      setApiErrorMessage(error instanceof Error ? error.message : "Unknown error occurred")
-      setUseMockData(true)
-    } finally {
-      setIsLoading(false)
     }
-  }
+  }, [])
+
+  // Save settings to localStorage
+  useEffect(() => {
+    localStorage.setItem("solanaForensicsSettings", JSON.stringify({ useMockData }))
+  }, [useMockData])
 
   return (
     <SettingsContext.Provider
       value={{
         useMockData,
         setUseMockData,
-        apiCredentialsValid,
-        apiErrorMessage,
+        apiStatus,
+        apiError,
         checkApiCredentials,
-        isLoading,
+        isCheckingApi,
       }}
     >
       {children}
