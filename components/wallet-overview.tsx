@@ -20,6 +20,12 @@ export function WalletOverview({ address }: WalletOverviewProps) {
 
   useEffect(() => {
     async function loadData() {
+      if (!address) {
+        setError("No wallet address provided")
+        setLoading(false)
+        return
+      }
+
       setLoading(true)
       setError(null)
 
@@ -75,13 +81,17 @@ export function WalletOverview({ address }: WalletOverviewProps) {
     )
   }
 
+  // Safe way to format the address with null checks
+  const formatAddress = (addr: string | undefined | null) => {
+    if (!addr) return "Unknown"
+    return `${addr.slice(0, 6)}...${addr.slice(-4)}`
+  }
+
   return (
     <Card>
       <CardHeader>
         <CardTitle>Wallet Overview</CardTitle>
-        <CardDescription>
-          Analysis of wallet {address.slice(0, 6)}...{address.slice(-4)}
-        </CardDescription>
+        <CardDescription>Analysis of wallet {formatAddress(address)}</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
@@ -100,12 +110,10 @@ export function WalletOverview({ address }: WalletOverviewProps) {
                 .map((node) => (
                   <div key={node.id} className="flex justify-between items-center p-2 bg-muted rounded-md">
                     <div>
-                      <p className="font-medium">{node.label}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {node.id.slice(0, 6)}...{node.id.slice(-4)}
-                      </p>
+                      <p className="font-medium">{node.label || "Unknown"}</p>
+                      <p className="text-xs text-muted-foreground">{formatAddress(node.id)}</p>
                     </div>
-                    <div className="text-sm">Group: {node.group}</div>
+                    <div className="text-sm">Group: {node.group || "Unknown"}</div>
                   </div>
                 ))}
             </div>

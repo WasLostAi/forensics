@@ -9,13 +9,21 @@ import { MockModeBanner } from "@/components/mock-mode-banner"
 
 export default function WalletPage() {
   const params = useParams()
-  const address = params.address as string
+  const address = params?.address ? String(params.address) : ""
+
+  if (!address) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="bg-destructive/10 text-destructive p-4 rounded-md">No wallet address provided</div>
+      </div>
+    )
+  }
 
   return (
     <div className="container mx-auto px-4 py-8">
       <MockModeBanner />
 
-      <WalletOverview walletAddress={address} />
+      <WalletOverview address={address} />
 
       <Tabs defaultValue="transactions" className="mt-8">
         <TabsList>
