@@ -1,0 +1,136 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 240 10% 8%;
+    --foreground: 0 0% 95%;
+
+    --card: 240 10% 12% / 0.7;
+    --card-foreground: 0 0% 95%;
+
+    --popover: 240 10% 12% / 0.9;
+    --popover-foreground: 0 0% 95%;
+
+    --primary: 270 100% 63%; /* Solana Purple */
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 240 10% 15%;
+    --secondary-foreground: 0 0% 95%;
+
+    --muted: 240 5% 15%;
+    --muted-foreground: 240 5% 65%;
+
+    --accent: 156 89% 51% / 0.2; /* Solana Green with low opacity */
+    --accent-foreground: 156 89% 51%; /* Solana Green */
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 240 6% 18%;
+    --input: 240 6% 18%;
+    --ring: 270 100% 63%; /* Solana Purple */
+
+    --radius: 0.75rem;
+  }
+
+  .light {
+    --background: 220 25% 97%;
+    --foreground: 240 10% 20%;
+
+    --card: 0 0% 100% / 0.7;
+    --card-foreground: 240 10% 20%;
+
+    --popover: 0 0% 100% / 0.9;
+    --popover-foreground: 240 10% 20%;
+
+    --primary: 270 100% 63%; /* Solana Purple */
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 250 30% 90%;
+    --secondary-foreground: 250 60% 40%;
+
+    --muted: 240 5% 96%;
+    --muted-foreground: 240 4% 46%;
+
+    --accent: 156 89% 51% / 0.2; /* Solana Green with low opacity */
+    --accent-foreground: 156 89% 51%; /* Solana Green */
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 240 6% 90%;
+    --input: 240 6% 90%;
+    --ring: 270 100% 63%; /* Solana Purple */
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+/* Glass effect for cards */
+.glass-card {
+  @apply bg-card backdrop-blur-md border border-border/30 shadow-sm;
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+}
+
+/* Softer borders */
+.soft-border {
+  @apply border border-border/30;
+}
+
+/* Gradient backgrounds */
+.gradient-bg {
+  @apply bg-gradient-to-br from-primary/10 to-accent-foreground/10;
+}
+
+/* Subtle hover effects */
+.subtle-hover {
+  @apply transition-all duration-200 hover:bg-accent/50;
+}
+
+.gradient-background {
+  background: linear-gradient(135deg, hsl(var(--background)) 0%, hsl(var(--background) / 0.8) 100%);
+  background-attachment: fixed;
+}
+
+/* Solana accent gradients - using direct CSS instead of Tailwind utilities */
+@layer components {
+  .solana-gradient-text {
+    @apply bg-clip-text text-transparent;
+    background-image: linear-gradient(to right, #9945ff, #14f195);
+  }
+
+  .solana-glow {
+    text-shadow: 0 0 10px rgba(153, 69, 255, 0.5), 0 0 20px rgba(20, 241, 149, 0.3);
+  }
+
+  /* Remove or comment out the solana-border-gradient styles */
+  /*
+  .solana-border-gradient {
+    position: relative;
+  }
+
+  .solana-border-gradient::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    padding: 1px;
+    border-radius: inherit;
+    background: linear-gradient(to right, #9945FF, #14F195);
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+  */
+}
