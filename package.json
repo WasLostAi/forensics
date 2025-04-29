@@ -60,10 +60,10 @@
     "zod": "^3.24.1",
     "jspdf": "latest",
     "html2canvas": "latest",
-    "tailwindcss": "latest",
     "@solana/web3.js": "latest",
     "@supabase/supabase-js": "latest",
-    "webpack": "latest"
+    "webpack": "latest",
+    "tailwindcss": "latest"
   },
   "devDependencies": {
     "@types/node": "^22",
