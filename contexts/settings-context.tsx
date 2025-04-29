@@ -1,98 +1,101 @@
 "use client"
 
-import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
+import type React from "react"
+import { createContext, useContext, useState, useEffect } from "react"
+import { validateArkhamCredentials } from "@/lib/arkham-api"
 
-export interface SettingsContextType {
-  rpcUrl: string
-  setRpcUrl: (url: string) => void
-  availableRpcs: { name: string; url: string; headers?: Record<string, string> }[]
-  selectedRpcName: string
-  setSelectedRpcName: (name: string) => void
+interface SettingsContextType {
+  useMockData: boolean
+  setUseMockData: (value: boolean) => void
+  apiCredentialsValid: boolean | null
+  apiErrorMessage: string | null
+  checkApiCredentials: () => Promise<void>
+  isLoading: boolean
 }
-
-const defaultRpcs = [
-  {
-    name: "Solana Public RPC",
-    url: "https://api.mainnet-beta.solana.com",
-    headers: { "Content-Type": "application/json" },
-  },
-  {
-    name: "Project Serum RPC",
-    url: "https://solana-api.projectserum.com",
-    headers: { "Content-Type": "application/json" },
-  },
-  {
-    name: "Ankr Public RPC",
-    url: "https://rpc.ankr.com/solana",
-    headers: {
-      "Content-Type": "application/json",
-      Origin: "https://solana-forensics.vercel.app",
-    },
-  },
-  { name: "Custom RPC", url: "" },
-]
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined)
 
-export function SettingsProvider({ children }: { children: ReactNode }) {
-  const [rpcUrl, setRpcUrl] = useState<string>(defaultRpcs[0].url)
-  const [availableRpcs, setAvailableRpcs] = useState(defaultRpcs)
-  const [selectedRpcName, setSelectedRpcName] = useState(defaultRpcs[0].name)
+export function SettingsProvider({ children }: { children: React.ReactNode }) {
+  const [useMockData, setUseMockData] = useState(true) // Default to true to avoid API errors
+  const [apiCredentialsValid, setApiCredentialsValid] = useState<boolean | null>(null)
+  const [apiErrorMessage, setApiErrorMessage] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
 
   // Load settings from localStorage on mount
   useEffect(() => {
-    try {
-      const savedRpcUrl = localStorage.getItem("rpcUrl")
-      const savedRpcName = localStorage.getItem("selectedRpcName")
-
-      if (savedRpcUrl) {
-        setRpcUrl(savedRpcUrl)
+    const savedSettings = localStorage.getItem("walletForensicsSettings")
+    if (savedSettings) {
+      try {
+        const parsedSettings = JSON.parse(savedSettings)
+        setUseMockData(parsedSettings.useMockData ?? true)
+      } catch (e) {
+        console.error("Failed to parse saved settings:", e)
       }
-
-      if (savedRpcName) {
-        setSelectedRpcName(savedRpcName)
-      }
-
-      // Handle custom RPC if saved
-      const customRpc = localStorage.getItem("customRpc")
-      if (customRpc) {
-        const updatedRpcs = [...defaultRpcs]
-        updatedRpcs[3].url = customRpc
-        setAvailableRpcs(updatedRpcs)
-      }
-    } catch (error) {
-      console.error("Failed to load settings from localStorage:", error)
     }
   }, [])
 
   // Save settings to localStorage when they change
   useEffect(() => {
+    localStorage.setItem("walletForensicsSettings", JSON.stringify({ useMockData }))
+  }, [useMockData])
+
+  // Check API credentials on mount, but don't block rendering
+  useEffect(() => {
+    // Use a delayed check to avoid blocking initial render
+    const timer = setTimeout(() => {
+      checkApiCredentials()
+    }, 1000)
+
+    return () => clearTimeout(timer)
+  }, [])
+
+  const checkApiCredentials = async () => {
+    if (isLoading) return
+
+    setIsLoading(true)
+    setApiErrorMessage(null)
+
     try {
-      localStorage.setItem("rpcUrl", rpcUrl)
-      localStorage.setItem("selectedRpcName", selectedRpcName)
+      const result = await validateArkhamCredentials()
+      setApiCredentialsValid(result.valid)
 
-      // Save custom RPC if selected
-      if (selectedRpcName === "Custom RPC") {
-        localStorage.setItem("customRpc", rpcUrl)
+      if (!result.valid) {
+        let errorMsg = "API credentials are invalid or not configured."
 
-        // Update available RPCs
-        const updatedRpcs = [...availableRpcs]
-        updatedRpcs[3].url = rpcUrl
-        setAvailableRpcs(updatedRpcs)
+        if (result.reason === "network_error") {
+          errorMsg = "Cannot connect to Arkham API. Please check your internet connection."
+        } else if (result.reason === "timeout") {
+          errorMsg = "Connection to Arkham API timed out. Please try again later."
+        } else if (result.reason === "fetch_error") {
+          errorMsg = `Error connecting to API: ${result.error || "Unknown error"}`
+        }
+
+        setApiErrorMessage(errorMsg)
+
+        // If credentials are invalid, default to mock data
+        if (!useMockData) {
+          setUseMockData(true)
+        }
       }
     } catch (error) {
-      console.error("Failed to save settings to localStorage:", error)
+      console.error("Error checking API credentials:", error)
+      setApiCredentialsValid(false)
+      setApiErrorMessage(error instanceof Error ? error.message : "Unknown error occurred")
+      setUseMockData(true)
+    } finally {
+      setIsLoading(false)
     }
-  }, [rpcUrl, selectedRpcName, availableRpcs])
+  }
 
   return (
     <SettingsContext.Provider
       value={{
-        rpcUrl,
-        setRpcUrl,
-        availableRpcs,
-        selectedRpcName,
-        setSelectedRpcName,
+        useMockData,
+        setUseMockData,
+        apiCredentialsValid,
+        apiErrorMessage,
+        checkApiCredentials,
+        isLoading,
       }}
     >
       {children}

@@ -12,10 +12,6 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-  reactStrictMode: true,
-  experimental: {
-    appDir: true,
-  },
   // Webpack configuration to handle Solana dependencies
   webpack: (config, { isServer }) => {
     if (!isServer) {
@@ -44,7 +40,7 @@ const nextConfig = {
     }
     return config;
   },
-  // Ensure environment variables are properly loaded
+  // Only include public environment variables
   env: {
     NEXT_PUBLIC_QUICKNODE_RPC_URL: process.env.NEXT_PUBLIC_QUICKNODE_RPC_URL,
   },

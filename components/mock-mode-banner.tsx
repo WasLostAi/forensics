@@ -1,18 +1,23 @@
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { AlertTriangle } from "lucide-react"
+"use client"
+
+import { useSettings } from "@/contexts/settings-context"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Info } from "lucide-react"
 import Link from "next/link"
 
 export function MockModeBanner() {
+  const { useMockData } = useSettings()
+
+  if (!useMockData) return null
+
   return (
-    <Alert variant="warning" className="mb-4">
-      <AlertTriangle className="h-4 w-4" />
-      <AlertTitle>Mock Mode Enabled</AlertTitle>
+    <Alert className="mb-6 bg-amber-500/10 text-amber-500 border-amber-500/20">
+      <Info className="h-4 w-4" />
       <AlertDescription>
-        This application is running in mock mode with sample data. To use real Solana data, you need to{" "}
-        <Link href="/settings" className="underline font-medium">
-          configure a valid RPC endpoint
+        <span className="font-medium">Mock Mode Active:</span> You're viewing simulated data for demonstration purposes.{" "}
+        <Link href="/settings" className="underline underline-offset-2">
+          Disable in Settings
         </Link>
-        .
       </AlertDescription>
     </Alert>
   )

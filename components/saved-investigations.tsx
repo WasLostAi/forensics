@@ -16,16 +16,25 @@ import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
-import { Bookmark, Clock, Edit, Trash2, Plus, Search, Share2 } from "lucide-react"
+import { Bookmark, Clock, Edit, Trash2, Plus, Search, Share2, AlertCircle } from "lucide-react"
+import {
+  fetchInvestigations,
+  createInvestigation,
+  updateInvestigation,
+  deleteInvestigation,
+} from "@/lib/investigation-service"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
 interface Investigation {
   id: string
   title: string
-  description: string
-  walletAddress: string
-  createdAt: string
-  updatedAt: string
-  tags: string[]
+  description: string | null
+  status: string
+  addresses: string[] | null
+  tags: string[] | null
+  created_at: string
+  updated_at: string
+  created_by: string | null
 }
 
 export function SavedInvestigations() {
@@ -37,102 +46,117 @@ export function SavedInvestigations() {
   const [walletAddress, setWalletAddress] = useState("")
   const [tags, setTags] = useState("")
   const [searchQuery, setSearchQuery] = useState("")
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    // Load saved investigations from localStorage
-    const savedInvestigations = localStorage.getItem("saved-investigations")
-    if (savedInvestigations) {
-      setInvestigations(JSON.parse(savedInvestigations))
-    } else {
-      // Mock data for demo
-      const mockInvestigations: Investigation[] = [
-        {
-          id: "1",
-          title: "Suspicious Exchange Activity",
-          description: "Investigation into unusual transaction patterns from Binance hot wallet",
-          walletAddress: "14FUT96s9swbmH7ZjpDvfEDywnAYy9zaNhv4HvB8F7oA",
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          tags: ["exchange", "high-volume", "suspicious"],
-        },
-        {
-          id: "2",
-          title: "Potential Rugpull Analysis",
-          description: "Tracking fund movements from suspected rugpull token",
-          walletAddress: "Rug9PulL5X8sMzMR6LSuuBJ5oAbJyC41GrYuczs4LRH",
-          createdAt: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
-          updatedAt: new Date(Date.now() - 86400000).toISOString(),
-          tags: ["token", "rugpull", "high-risk"],
-        },
-      ]
-      setInvestigations(mockInvestigations)
-      localStorage.setItem("saved-investigations", JSON.stringify(mockInvestigations))
+    // Load investigations from Supabase
+    async function loadInvestigations() {
+      setIsLoading(true)
+      try {
+        const data = await fetchInvestigations()
+        setInvestigations(data)
+      } catch (error) {
+        console.error("Failed to load investigations:", error)
+        setError("Failed to load investigations")
+
+        // Mock data for demo
+        const mockInvestigations: Investigation[] = [
+          {
+            id: "1",
+            title: "Suspicious Exchange Activity",
+            description: "Investigation into unusual transaction patterns from Binance hot wallet",
+            status: "open",
+            addresses: ["14FUT96s9swbmH7ZjpDvfEDywnAYy9zaNhv4HvB8F7oA"],
+            tags: ["exchange", "high-volume", "suspicious"],
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            created_by: null,
+          },
+          {
+            id: "2",
+            title: "Potential Rugpull Analysis",
+            description: "Tracking fund movements from suspected rugpull token",
+            status: "open",
+            addresses: ["Rug9PulL5X8sMzMR6LSuuBJ5oAbJyC41GrYuczs4LRH"],
+            tags: ["token", "rugpull", "high-risk"],
+            created_at: new Date(Date.now() - 86400000).toISOString(),
+            updated_at: new Date(Date.now() - 86400000).toISOString(),
+            created_by: null,
+          },
+        ]
+        setInvestigations(mockInvestigations)
+      } finally {
+        setIsLoading(false)
+      }
     }
+
+    loadInvestigations()
   }, [])
 
-  const saveInvestigations = (updatedInvestigations: Investigation[]) => {
-    setInvestigations(updatedInvestigations)
-    localStorage.setItem("saved-investigations", JSON.stringify(updatedInvestigations))
-  }
-
-  const handleSaveInvestigation = () => {
-    if (!title || !walletAddress) return
+  const handleSaveInvestigation = async () => {
+    if (!title) return
 
     const tagArray = tags
       .split(",")
       .map((tag) => tag.trim())
       .filter((tag) => tag)
 
-    if (currentInvestigation) {
-      // Update existing investigation
-      const updatedInvestigations = investigations.map((inv) =>
-        inv.id === currentInvestigation.id
-          ? {
-              ...inv,
-              title,
-              description,
-              walletAddress,
-              updatedAt: new Date().toISOString(),
-              tags: tagArray,
-            }
-          : inv,
-      )
-      saveInvestigations(updatedInvestigations)
-    } else {
-      // Create new investigation
-      const newInvestigation: Investigation = {
-        id: Date.now().toString(),
-        title,
-        description,
-        walletAddress,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        tags: tagArray,
-      }
-      saveInvestigations([...investigations, newInvestigation])
-    }
+    const addressArray = walletAddress ? [walletAddress] : []
 
-    // Reset form
-    setTitle("")
-    setDescription("")
-    setWalletAddress("")
-    setTags("")
-    setCurrentInvestigation(null)
-    setIsDialogOpen(false)
+    try {
+      if (currentInvestigation) {
+        // Update existing investigation
+        const updated = await updateInvestigation(currentInvestigation.id, {
+          title,
+          description,
+          addresses: addressArray,
+          tags: tagArray,
+        })
+
+        setInvestigations(investigations.map((inv) => (inv.id === currentInvestigation.id ? updated : inv)))
+      } else {
+        // Create new investigation
+        const newInvestigation = await createInvestigation({
+          title,
+          description,
+          addresses: addressArray,
+          tags: tagArray,
+        })
+
+        setInvestigations([...investigations, newInvestigation])
+      }
+
+      // Reset form
+      setTitle("")
+      setDescription("")
+      setWalletAddress("")
+      setTags("")
+      setCurrentInvestigation(null)
+      setIsDialogOpen(false)
+    } catch (error) {
+      console.error("Failed to save investigation:", error)
+      setError("Failed to save investigation")
+    }
   }
 
   const handleEditInvestigation = (investigation: Investigation) => {
     setCurrentInvestigation(investigation)
     setTitle(investigation.title)
-    setDescription(investigation.description)
-    setWalletAddress(investigation.walletAddress)
-    setTags(investigation.tags.join(", "))
+    setDescription(investigation.description || "")
+    setWalletAddress(investigation.addresses && investigation.addresses.length > 0 ? investigation.addresses[0] : "")
+    setTags(investigation.tags ? investigation.tags.join(", ") : "")
     setIsDialogOpen(true)
   }
 
-  const handleDeleteInvestigation = (id: string) => {
-    const updatedInvestigations = investigations.filter((inv) => inv.id !== id)
-    saveInvestigations(updatedInvestigations)
+  const handleDeleteInvestigation = async (id: string) => {
+    try {
+      await deleteInvestigation(id)
+      setInvestigations(investigations.filter((inv) => inv.id !== id))
+    } catch (error) {
+      console.error("Failed to delete investigation:", error)
+      setError("Failed to delete investigation")
+    }
   }
 
   const handleNewInvestigation = () => {
@@ -147,13 +171,21 @@ export function SavedInvestigations() {
   const filteredInvestigations = investigations.filter(
     (inv) =>
       inv.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      inv.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      inv.walletAddress.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      inv.tags.some((tag) => tag.toLowerCase().includes(searchQuery.toLowerCase())),
+      (inv.description && inv.description.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (inv.addresses && inv.addresses.some((addr) => addr.toLowerCase().includes(searchQuery.toLowerCase()))) ||
+      (inv.tags && inv.tags.some((tag) => tag.toLowerCase().includes(searchQuery.toLowerCase()))),
   )
 
   return (
     <div className="space-y-4">
+      {error && (
+        <Alert variant="destructive" className="mb-4">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold">Saved Investigations</h2>
         <Button onClick={handleNewInvestigation}>
@@ -180,7 +212,11 @@ export function SavedInvestigations() {
         </TabsList>
 
         <TabsContent value="all" className="mt-4">
-          {filteredInvestigations.length === 0 ? (
+          {isLoading ? (
+            <div className="flex h-40 items-center justify-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+            </div>
+          ) : filteredInvestigations.length === 0 ? (
             <div className="flex h-40 items-center justify-center rounded-md border border-dashed">
               <div className="text-center">
                 <p className="text-muted-foreground">No investigations found</p>
@@ -203,25 +239,36 @@ export function SavedInvestigations() {
                     </div>
                     <CardDescription className="flex items-center gap-1">
                       <Clock className="h-3 w-3" />
-                      {new Date(investigation.updatedAt).toLocaleDateString()}
+                      {new Date(investigation.updated_at).toLocaleDateString()}
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
                     <p className="text-sm text-muted-foreground line-clamp-2">{investigation.description}</p>
-                    <p className="mt-2 font-mono text-xs text-muted-foreground truncate">
-                      {investigation.walletAddress}
-                    </p>
+                    {investigation.addresses && investigation.addresses.length > 0 && (
+                      <p className="mt-2 font-mono text-xs text-muted-foreground truncate">
+                        {investigation.addresses[0]}
+                      </p>
+                    )}
                     <div className="mt-2 flex flex-wrap gap-1">
-                      {investigation.tags.map((tag) => (
-                        <Badge key={tag} variant="outline" className="text-xs">
-                          {tag}
-                        </Badge>
-                      ))}
+                      {investigation.tags &&
+                        investigation.tags.map((tag) => (
+                          <Badge key={tag} variant="outline" className="text-xs">
+                            {tag}
+                          </Badge>
+                        ))}
                     </div>
                   </CardContent>
                   <CardFooter className="flex justify-between pt-0">
                     <Button variant="outline" size="sm" asChild>
-                      <a href={`/wallet/${investigation.walletAddress}`}>Open</a>
+                      <a
+                        href={
+                          investigation.addresses && investigation.addresses.length > 0
+                            ? `/wallet/${investigation.addresses[0]}`
+                            : "#"
+                        }
+                      >
+                        Open
+                      </a>
                     </Button>
                     <div className="flex gap-2">
                       <Button variant="ghost" size="icon">
@@ -243,7 +290,7 @@ export function SavedInvestigations() {
         <TabsContent value="recent" className="mt-4">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
             {filteredInvestigations
-              .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+              .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
               .slice(0, 6)
               .map((investigation) => (
                 <Card key={investigation.id}>
@@ -257,22 +304,31 @@ export function SavedInvestigations() {
                     </div>
                     <CardDescription className="flex items-center gap-1">
                       <Clock className="h-3 w-3" />
-                      {new Date(investigation.updatedAt).toLocaleDateString()}
+                      {new Date(investigation.updated_at).toLocaleDateString()}
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
                     <p className="text-sm text-muted-foreground line-clamp-2">{investigation.description}</p>
                     <div className="mt-2 flex flex-wrap gap-1">
-                      {investigation.tags.map((tag) => (
-                        <Badge key={tag} variant="outline" className="text-xs">
-                          {tag}
-                        </Badge>
-                      ))}
+                      {investigation.tags &&
+                        investigation.tags.map((tag) => (
+                          <Badge key={tag} variant="outline" className="text-xs">
+                            {tag}
+                          </Badge>
+                        ))}
                     </div>
                   </CardContent>
                   <CardFooter className="flex justify-between pt-0">
                     <Button variant="outline" size="sm" asChild>
-                      <a href={`/wallet/${investigation.walletAddress}`}>Open</a>
+                      <a
+                        href={
+                          investigation.addresses && investigation.addresses.length > 0
+                            ? `/wallet/${investigation.addresses[0]}`
+                            : "#"
+                        }
+                      >
+                        Open
+                      </a>
                     </Button>
                     <Button variant="ghost" size="icon" onClick={() => handleDeleteInvestigation(investigation.id)}>
                       <Trash2 className="h-4 w-4" />
@@ -287,7 +343,10 @@ export function SavedInvestigations() {
         <TabsContent value="high-risk" className="mt-4">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
             {filteredInvestigations
-              .filter((inv) => inv.tags.some((tag) => ["high-risk", "suspicious", "scam", "rugpull"].includes(tag)))
+              .filter(
+                (inv) =>
+                  inv.tags && inv.tags.some((tag) => ["high-risk", "suspicious", "scam", "rugpull"].includes(tag)),
+              )
               .map((investigation) => (
                 <Card key={investigation.id}>
                   <CardHeader className="pb-2">
@@ -300,22 +359,31 @@ export function SavedInvestigations() {
                     </div>
                     <CardDescription className="flex items-center gap-1">
                       <Clock className="h-3 w-3" />
-                      {new Date(investigation.updatedAt).toLocaleDateString()}
+                      {new Date(investigation.updated_at).toLocaleDateString()}
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
                     <p className="text-sm text-muted-foreground line-clamp-2">{investigation.description}</p>
                     <div className="mt-2 flex flex-wrap gap-1">
-                      {investigation.tags.map((tag) => (
-                        <Badge key={tag} variant="outline" className="text-xs">
-                          {tag}
-                        </Badge>
-                      ))}
+                      {investigation.tags &&
+                        investigation.tags.map((tag) => (
+                          <Badge key={tag} variant="outline" className="text-xs">
+                            {tag}
+                          </Badge>
+                        ))}
                     </div>
                   </CardContent>
                   <CardFooter className="flex justify-between pt-0">
                     <Button variant="outline" size="sm" asChild>
-                      <a href={`/wallet/${investigation.walletAddress}`}>Open</a>
+                      <a
+                        href={
+                          investigation.addresses && investigation.addresses.length > 0
+                            ? `/wallet/${investigation.addresses[0]}`
+                            : "#"
+                        }
+                      >
+                        Open
+                      </a>
                     </Button>
                     <Button variant="ghost" size="icon" onClick={() => handleDeleteInvestigation(investigation.id)}>
                       <Trash2 className="h-4 w-4" />

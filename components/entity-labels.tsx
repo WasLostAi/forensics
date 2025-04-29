@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Plus, Save, Trash, AlertTriangle, Search } from "lucide-react"
-import { fetchEntityLabels } from "@/lib/api"
+import { fetchEntityLabelsFromDB, saveEntityLabel, deleteEntityLabel } from "@/lib/entity-service"
 import { lookupEntity, searchEntities } from "@/lib/entity-database"
 import type { EntityLabel } from "@/types/entity"
 
@@ -30,14 +30,14 @@ export function EntityLabels({ walletAddress }: EntityLabelsProps) {
       setIsLoading(true)
       setError(null)
       try {
-        // In a real implementation, this would fetch from a database
-        const data = await fetchEntityLabels(walletAddress)
+        // Fetch entity labels from Supabase
+        const data = await fetchEntityLabelsFromDB(walletAddress)
 
         // Check if this wallet is in our known entities database
         const knownEntity = lookupEntity(walletAddress)
 
-        if (knownEntity) {
-          // Add the known entity as a label
+        if (knownEntity && !data.some((label) => label.source === "database" && label.label === knownEntity.name)) {
+          // Add the known entity as a label if it doesn't exist yet
           const knownEntityLabel: EntityLabel = {
             id: "known-entity",
             address: walletAddress,
@@ -49,7 +49,20 @@ export function EntityLabels({ walletAddress }: EntityLabelsProps) {
             updatedAt: new Date().toISOString(),
           }
 
-          setLabels([knownEntityLabel, ...data])
+          // Save to Supabase
+          try {
+            const savedLabel = await saveEntityLabel({
+              address: walletAddress,
+              label: knownEntity.name,
+              category: knownEntity.category as any,
+              confidence: 1.0,
+              source: "database",
+            })
+            setLabels([savedLabel, ...data])
+          } catch (saveError) {
+            console.error("Failed to save known entity label:", saveError)
+            setLabels([knownEntityLabel, ...data])
+          }
         } else {
           setLabels(data)
         }
@@ -100,45 +113,55 @@ export function EntityLabels({ walletAddress }: EntityLabelsProps) {
     }
   }, [searchQuery])
 
-  const handleAddLabel = () => {
+  const handleAddLabel = async () => {
     if (!newLabel.trim()) return
 
-    const newLabelObj: EntityLabel = {
-      id: Date.now().toString(),
-      address: walletAddress,
-      label: newLabel,
-      category: newCategory as "exchange" | "individual" | "contract" | "scam" | "other",
-      confidence: 0.8,
-      source: "user",
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    }
+    try {
+      const newLabelObj = await saveEntityLabel({
+        address: walletAddress,
+        label: newLabel,
+        category: newCategory as "exchange" | "individual" | "contract" | "scam" | "other",
+        confidence: 0.8,
+        source: "user",
+      })
 
-    setLabels([...labels, newLabelObj])
-    setNewLabel("")
-    setNewCategory("exchange")
-    setIsEditing(false)
+      setLabels([...labels, newLabelObj])
+      setNewLabel("")
+      setNewCategory("exchange")
+      setIsEditing(false)
+    } catch (error) {
+      console.error("Failed to add label:", error)
+      setError("Failed to add label. Please try again.")
+    }
   }
 
-  const handleAddKnownEntity = (entity: any) => {
-    const newLabelObj: EntityLabel = {
-      id: Date.now().toString(),
-      address: walletAddress,
-      label: entity.name,
-      category: entity.category as any,
-      confidence: 0.9,
-      source: "database",
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    }
+  const handleAddKnownEntity = async (entity: any) => {
+    try {
+      const newLabelObj = await saveEntityLabel({
+        address: walletAddress,
+        label: entity.name,
+        category: entity.category as any,
+        confidence: 0.9,
+        source: "database",
+      })
 
-    setLabels([...labels, newLabelObj])
-    setSearchQuery("")
-    setSearchResults([])
+      setLabels([...labels, newLabelObj])
+      setSearchQuery("")
+      setSearchResults([])
+    } catch (error) {
+      console.error("Failed to add known entity:", error)
+      setError("Failed to add known entity. Please try again.")
+    }
   }
 
-  const handleDeleteLabel = (id: string) => {
-    setLabels(labels.filter((label) => label.id !== id))
+  const handleDeleteLabel = async (id: string) => {
+    try {
+      await deleteEntityLabel(id)
+      setLabels(labels.filter((label) => label.id !== id))
+    } catch (error) {
+      console.error("Failed to delete label:", error)
+      setError("Failed to delete label. Please try again.")
+    }
   }
 
   const getCategoryColor = (category: string) => {

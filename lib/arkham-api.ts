@@ -1,140 +1,102 @@
-// Arkham Exchange API client
-
+// Arkham Exchange API client - Client-side safe version
 import type { TransactionFlowData } from "@/types/transaction"
 
-const ARKHAM_API_BASE_URL = "https://api.arkham.com/v1"
-
 // Interface for API responses
-interface ArkhamApiResponse<T> {
+interface ApiResponse<T> {
   success: boolean
   data?: T
   error?: string
+  warning?: string
 }
 
-interface ArkhamWalletData {
-  address: string
-  label?: string
-  category?: string
-  risk_score?: number
-  connected_addresses?: string[]
-  transactions?: ArkhamTransaction[]
-}
-
-interface ArkhamTransaction {
-  hash: string
-  from: string
-  to: string
-  value: number
-  timestamp: string
-}
-
-// Helper function to make authenticated requests to Arkham API
-async function makeArkhamRequest<T>(endpoint: string, method = "GET", body?: any): Promise<ArkhamApiResponse<T>> {
-  // Use environment variables for API credentials
-  const apiKey = process.env.ARKHAM_API_KEY
-  const apiSecret = process.env.ARKHAM_API_SECRET
-
-  if (!apiKey || !apiSecret) {
-    console.error("Arkham API credentials not found in environment variables")
-    return {
-      success: false,
-      error: "API credentials not configured. Please add them in your project settings.",
-    }
-  }
-
+// Function to check if Arkham API credentials are valid
+export async function validateArkhamCredentials(): Promise<{
+  valid: boolean
+  reason?: string
+  error?: string
+}> {
   try {
-    const headers = {
-      "Content-Type": "application/json",
-      "X-API-Key": apiKey,
-      "X-API-Secret": apiSecret,
-    }
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 8000) // 8 second timeout
 
-    const requestOptions: RequestInit = {
-      method,
-      headers,
-      body: body ? JSON.stringify(body) : undefined,
-    }
+    const response = await fetch("/api/arkham", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ action: "check-credentials" }),
+      signal: controller.signal,
+    })
 
-    const response = await fetch(`${ARKHAM_API_BASE_URL}${endpoint}`, requestOptions)
+    clearTimeout(timeoutId)
 
     if (!response.ok) {
-      const errorText = await response.text()
-      throw new Error(`Arkham API error (${response.status}): ${errorText}`)
+      console.error("API validation response not OK:", response.status)
+      return { valid: false, reason: "api_error", error: `HTTP error ${response.status}` }
     }
 
     const data = await response.json()
-    return { success: true, data }
-  } catch (error) {
-    console.error("Arkham API request failed:", error)
     return {
-      success: false,
-      error: error instanceof Error ? error.message : "Unknown error occurred",
+      valid: data.valid === true,
+      reason: data.reason,
+      error: data.error,
+    }
+  } catch (error) {
+    console.error("Failed to validate Arkham credentials:", error)
+
+    // Handle abort errors specifically
+    if (error instanceof DOMException && error.name === "AbortError") {
+      return { valid: false, reason: "timeout", error: "Request timed out" }
+    }
+
+    return {
+      valid: false,
+      reason: "fetch_error",
+      error: error instanceof Error ? error.message : "Unknown error",
     }
   }
-}
-
-// Function to get wallet data and transaction flow from Arkham
-export async function getArkhamWalletData(walletAddress: string): Promise<ArkhamApiResponse<ArkhamWalletData>> {
-  return makeArkhamRequest<ArkhamWalletData>(`/wallet/${walletAddress}`)
-}
-
-// Convert Arkham data to our application's TransactionFlowData format
-export function convertToTransactionFlowData(arkhamData: ArkhamWalletData): TransactionFlowData {
-  const nodes = [
-    {
-      id: arkhamData.address,
-      group: 1,
-      label: arkhamData.label || "Main Wallet",
-      value: 20,
-    },
-  ]
-
-  const links: TransactionFlowData["links"] = []
-
-  // Add connected addresses as nodes
-  if (arkhamData.connected_addresses) {
-    arkhamData.connected_addresses.forEach((address, index) => {
-      nodes.push({
-        id: address,
-        group: 2,
-        label: `Connected Wallet ${index + 1}`,
-        value: 10,
-      })
-    })
-  }
-
-  // Add transactions as links
-  if (arkhamData.transactions) {
-    arkhamData.transactions.forEach((tx) => {
-      links.push({
-        source: tx.from,
-        target: tx.to,
-        value: tx.value,
-        timestamp: tx.timestamp,
-      })
-    })
-  }
-
-  return { nodes, links }
 }
 
 // Main function to fetch transaction flow data from Arkham
-export async function fetchArkhamTransactionFlow(walletAddress: string): Promise<TransactionFlowData> {
+export async function fetchArkhamTransactionFlow(
+  walletAddress: string,
+  useMockData = false,
+): Promise<TransactionFlowData> {
   try {
-    const response = await getArkhamWalletData(walletAddress)
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 10000) // 10 second timeout
 
-    if (!response.success || !response.data) {
-      throw new Error(response.error || "Failed to fetch data from Arkham")
+    const response = await fetch(`/api/arkham?address=${encodeURIComponent(walletAddress)}&mock=${useMockData}`, {
+      signal: controller.signal,
+    })
+
+    clearTimeout(timeoutId)
+
+    if (!response.ok) {
+      console.error("API response not OK:", response.status)
+      throw new Error(`API error: ${response.status}`)
     }
 
-    return convertToTransactionFlowData(response.data)
+    const result = await response.json()
+
+    if (!result.success) {
+      console.error("Failed to fetch data:", result.error)
+      throw new Error(result.error || "Unknown error")
+    }
+
+    if (result.warning) {
+      console.warn("API warning:", result.warning)
+    }
+
+    return result.data
   } catch (error) {
-    console.error("Error fetching Arkham transaction flow:", error)
+    console.error("Error fetching transaction flow:", error)
 
-    // Return minimal fallback data
-    return {
-      nodes: [{ id: walletAddress, group: 1, label: "Main Wallet", value: 20 }],
-      links: [],
+    // Handle abort errors specifically
+    if (error instanceof DOMException && error.name === "AbortError") {
+      throw new Error("Request timed out. Please try again later.")
     }
+
+    throw error
   }
 }
