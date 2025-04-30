@@ -46,3 +46,14 @@ export interface EntityCluster {
   tags?: string[]
   behaviorPatterns?: string[]
 }
+
+export type Entity = {
+  type: string
+  name: string
+  address: string
+  category: string
+  confidence: number
+  tags?: string[]
+  riskScore?: number
+  description?: string
+}
