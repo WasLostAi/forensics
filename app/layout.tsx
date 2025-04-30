@@ -5,6 +5,7 @@ import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { AppLayout } from "@/components/app-layout"
 import { SettingsProvider } from "@/contexts/settings-context"
+import { AuthProvider } from "@/contexts/auth-context"
 
 // Define fonts
 const inter = Inter({
@@ -47,9 +48,11 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning className="dark">
       <body className={`${inter.variable} ${outfit.variable} ${jetbrainsMono.variable} ${genos.variable} font-sans`}>
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} disableTransitionOnChange>
-          <SettingsProvider>
-            <AppLayout>{children}</AppLayout>
-          </SettingsProvider>
+          <AuthProvider>
+            <SettingsProvider>
+              <AppLayout>{children}</AppLayout>
+            </SettingsProvider>
+          </AuthProvider>
         </ThemeProvider>
       </body>
     </html>

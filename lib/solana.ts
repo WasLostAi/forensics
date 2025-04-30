@@ -6,43 +6,8 @@ import type { Transaction } from "@/types/transaction"
 let connection: Connection | null = null
 let PublicKey: typeof PublicKeyType | null = null
 
-// Mock data for development/preview
-const mockData = {
-  balance: 145.72,
-  transactionCount: 287,
-  firstActivity: "2022-03-15T14:23:45Z",
-  lastActivity: "2023-11-28T09:12:33Z",
-  incomingVolume: 1245.32,
-  outgoingVolume: 1099.6,
-  transactions: [] as Transaction[],
-  flowData: {
-    nodes: [
-      { id: "main-wallet", group: 1, label: "Main Wallet", value: 20 },
-      { id: "wallet1", group: 2, label: "Exchange Wallet", value: 15 },
-      { id: "wallet2", group: 3, label: "Unknown Wallet", value: 10 },
-      { id: "wallet3", group: 2, label: "Exchange Wallet", value: 12 },
-      { id: "wallet4", group: 4, label: "Mixer", value: 8 },
-    ],
-    links: [
-      { source: "main-wallet", target: "wallet1", value: 5.2, timestamp: "2023-10-15T14:23:45Z" },
-      { source: "wallet1", target: "wallet2", value: 3.1, timestamp: "2023-10-16T09:12:33Z" },
-      { source: "wallet2", target: "main-wallet", value: 1.5, timestamp: "2023-10-17T18:45:12Z" },
-      { source: "main-wallet", target: "wallet3", value: 7.8, timestamp: "2023-10-18T11:34:56Z" },
-    ],
-  },
-}
-
-// Mock mode is now controlled via the settings context
-// and passed as a parameter to each function
-
 // Initialize Solana connection with the provided RPC URL
-export async function getConnection(rpcUrl?: string, forceMock = false) {
-  // If mock mode is enabled or forced, don't attempt to connect to an RPC
-  if (forceMock) {
-    console.log("Mock mode enabled - not connecting to RPC")
-    return null
-  }
-
+export async function getConnection(rpcUrl?: string) {
   try {
     // Dynamically import Solana web3.js to avoid SSR issues
     const solanaWeb3 = await import("@solana/web3.js")
@@ -82,12 +47,7 @@ export async function getConnection(rpcUrl?: string, forceMock = false) {
 }
 
 // Helper function to check connection status
-export async function isConnected(rpcUrl?: string, forceMock = false) {
-  // If mock mode is enabled or forced, pretend we're connected
-  if (forceMock) {
-    return true
-  }
-
+export async function isConnected(rpcUrl?: string) {
   try {
     const conn = await getConnection(rpcUrl)
     if (!conn) return false
@@ -101,12 +61,7 @@ export async function isConnected(rpcUrl?: string, forceMock = false) {
   }
 }
 
-export async function getWalletBalance(address: string, rpcUrl?: string, useMockData = false): Promise<number> {
-  // If mock mode is enabled, return mock data
-  if (useMockData) {
-    return mockData.balance
-  }
-
+export async function getWalletBalance(address: string, rpcUrl?: string): Promise<number> {
   try {
     const conn = await getConnection(rpcUrl)
     if (!conn || !PublicKey) {
@@ -124,13 +79,7 @@ export async function getWalletBalance(address: string, rpcUrl?: string, useMock
   }
 }
 
-// Update other functions to accept useMockData parameter
-export async function getTransactionCount(address: string, rpcUrl?: string, useMockData = false): Promise<number> {
-  // If mock mode is enabled, return mock data
-  if (useMockData) {
-    return mockData.transactionCount
-  }
-
+export async function getTransactionCount(address: string, rpcUrl?: string): Promise<number> {
   try {
     const conn = await getConnection(rpcUrl)
     if (!conn || !PublicKey) {
@@ -151,23 +100,12 @@ export async function getTransactionCount(address: string, rpcUrl?: string, useM
 export async function getWalletActivity(
   address: string,
   rpcUrl?: string,
-  useMockData = false,
 ): Promise<{
   first: string
   last: string
   incoming: number
   outgoing: number
 }> {
-  // If mock mode is enabled, return mock data
-  if (useMockData) {
-    return {
-      first: mockData.firstActivity,
-      last: mockData.lastActivity,
-      incoming: mockData.incomingVolume,
-      outgoing: mockData.outgoingVolume,
-    }
-  }
-
   try {
     const conn = await getConnection(rpcUrl)
     if (!conn || !PublicKey) {
@@ -240,17 +178,7 @@ export async function getWalletActivity(
   }
 }
 
-export async function getTransactionHistory(
-  address: string,
-  limit = 20,
-  rpcUrl?: string,
-  useMockData = false,
-): Promise<Transaction[]> {
-  // If mock mode is enabled, return mock data
-  if (useMockData) {
-    return mockData.transactions
-  }
-
+export async function getTransactionHistory(address: string, limit = 20, rpcUrl?: string): Promise<Transaction[]> {
   try {
     const conn = await getConnection(rpcUrl)
     if (!conn || !PublicKey) {
@@ -368,21 +296,7 @@ export async function getTransactionFlowData(
   date?: Date,
   minAmount = 0,
   rpcUrl?: string,
-  useMockData = false,
 ): Promise<any> {
-  // If mock mode is enabled, return mock data
-  if (useMockData) {
-    // Replace the main wallet ID with the actual wallet address
-    const mockFlowData = JSON.parse(JSON.stringify(mockData.flowData))
-    mockFlowData.nodes[0].id = walletAddress
-    mockFlowData.links = mockFlowData.links.map((link) => {
-      if (link.source === "main-wallet") link.source = walletAddress
-      if (link.target === "main-wallet") link.target = walletAddress
-      return link
-    })
-    return mockFlowData
-  }
-
   try {
     const conn = await getConnection(rpcUrl)
     if (!conn || !PublicKey) {
@@ -480,12 +394,7 @@ export async function getTransactionFlowData(
 }
 
 // Token analysis functions
-export async function getTokenHolders(tokenAddress: string, rpcUrl?: string, useMockData = false): Promise<string[]> {
-  // If mock mode is enabled, return mock data
-  if (useMockData) {
-    return ["wallet1", "wallet2", "wallet3", "wallet4", "wallet5"]
-  }
-
+export async function getTokenHolders(tokenAddress: string, rpcUrl?: string): Promise<string[]> {
   try {
     const conn = await getConnection(rpcUrl)
     if (!conn || !PublicKey) {
@@ -495,50 +404,28 @@ export async function getTokenHolders(tokenAddress: string, rpcUrl?: string, use
     // In a real implementation, you would fetch token holders from the blockchain
     // This is a complex operation requiring SPL token account lookups
 
-    return [] // Return empty array instead of mock data
+    // For now, return an empty array
+    return []
   } catch (error) {
     console.error("Error fetching token holders:", error)
     throw error
   }
 }
 
-export async function detectWalletClusters(
-  tokenAddress: string,
-  rpcUrl?: string,
-  useMockData = false,
-): Promise<boolean> {
-  // If mock mode is enabled, return mock data
-  if (useMockData) {
-    return Math.random() > 0.5
-  }
-
+export async function detectWalletClusters(tokenAddress: string, rpcUrl?: string): Promise<boolean> {
   // This would require complex analysis of transaction patterns
-  // For now, return false instead of mock data
+  // For now, return false
   return false
 }
 
-export async function detectBundledRug(tokenAddress: string, rpcUrl?: string, useMockData = false): Promise<boolean> {
-  // If mock mode is enabled, return mock data
-  if (useMockData) {
-    return Math.random() > 0.7
-  }
-
+export async function detectBundledRug(tokenAddress: string, rpcUrl?: string): Promise<boolean> {
   // This would require complex analysis of token transactions
-  // For now, return false instead of mock data
+  // For now, return false
   return false
 }
 
-export async function checkLiquidityRemoval(
-  poolAddress: string,
-  rpcUrl?: string,
-  useMockData = false,
-): Promise<boolean> {
-  // If mock mode is enabled, return mock data
-  if (useMockData) {
-    return Math.random() > 0.8
-  }
-
+export async function checkLiquidityRemoval(poolAddress: string, rpcUrl?: string): Promise<boolean> {
   // This would require analysis of liquidity pool transactions
-  // For now, return false instead of mock data
+  // For now, return false
   return false
 }

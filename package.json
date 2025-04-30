@@ -60,8 +60,9 @@
     "zod": "^3.24.1",
     "@supabase/supabase-js": "latest",
     "webpack": "latest",
+    "@solana/web3.js": "latest",
     "reactflow": "latest",
-    "@solana/web3.js": "latest"
+    "@tanstack/react-virtual": "latest"
   },
   "devDependencies": {
     "@types/node": "^22",

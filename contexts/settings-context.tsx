@@ -5,8 +5,6 @@ import { createContext, useContext, useState, useEffect } from "react"
 import { validateArkhamCredentials } from "@/lib/arkham-api"
 
 type SettingsContextType = {
-  useMockData: boolean
-  setUseMockData: (value: boolean) => void
   apiStatus: "unchecked" | "checking" | "valid" | "invalid" | "network-error"
   apiError: string | null
   checkApiCredentials: () => Promise<void>
@@ -16,7 +14,6 @@ type SettingsContextType = {
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined)
 
 export function SettingsProvider({ children }: { children: React.ReactNode }) {
-  const [useMockData, setUseMockData] = useState(true) // Default to true for better UX
   const [apiStatus, setApiStatus] = useState<"unchecked" | "checking" | "valid" | "invalid" | "network-error">(
     "unchecked",
   )
@@ -72,37 +69,9 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     return () => clearTimeout(timer)
   }, [])
 
-  // Load settings from localStorage
-  useEffect(() => {
-    try {
-      const savedSettings = localStorage.getItem("solanaForensicsSettings")
-      if (savedSettings) {
-        try {
-          const settings = JSON.parse(savedSettings)
-          setUseMockData(settings.useMockData ?? true)
-        } catch (e) {
-          console.error("Error parsing saved settings:", e)
-        }
-      }
-    } catch (error) {
-      console.error("Error accessing localStorage:", error)
-    }
-  }, [])
-
-  // Save settings to localStorage
-  useEffect(() => {
-    try {
-      localStorage.setItem("solanaForensicsSettings", JSON.stringify({ useMockData }))
-    } catch (error) {
-      console.error("Error saving to localStorage:", error)
-    }
-  }, [useMockData])
-
   return (
     <SettingsContext.Provider
       value={{
-        useMockData,
-        setUseMockData,
         apiStatus,
         apiError,
         checkApiCredentials,
