@@ -3,8 +3,8 @@ import type { Database } from "@/types/supabase"
 
 // Create a singleton instance of the Supabase client
 const createSingletonClient = () => {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ""
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
 
   // Check if we have the required environment variables
   if (!supabaseUrl || !supabaseAnonKey) {
@@ -42,18 +42,11 @@ const createSingletonClient = () => {
         signUp: () => Promise.resolve({ data: null, error: { message: "Mock mode active" } }),
         signIn: () => Promise.resolve({ data: null, error: { message: "Mock mode active" } }),
         signOut: () => Promise.resolve({ error: null }),
-        onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
-        getSession: () => Promise.resolve({ data: { session: null }, error: null }),
       },
     }
   }
 
-  return supabaseCreateClient<Database>(supabaseUrl, supabaseAnonKey, {
-    auth: {
-      autoRefreshToken: true,
-      persistSession: true,
-    },
-  })
+  return supabaseCreateClient<Database>(supabaseUrl, supabaseAnonKey)
 }
 
 // Export the singleton instance
