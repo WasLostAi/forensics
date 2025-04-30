@@ -6,43 +6,8 @@ import type { Transaction } from "@/types/transaction"
 let connection: Connection | null = null
 let PublicKey: typeof PublicKeyType | null = null
 
-// Enable mock mode for development/preview environments
-const ENABLE_MOCK_MODE = true // Set to false in production
-
-// Mock data for development/preview
-const mockData = {
-  balance: 145.72,
-  transactionCount: 287,
-  firstActivity: "2022-03-15T14:23:45Z",
-  lastActivity: "2023-11-28T09:12:33Z",
-  incomingVolume: 1245.32,
-  outgoingVolume: 1099.6,
-  transactions: [] as Transaction[],
-  flowData: {
-    nodes: [
-      { id: "main-wallet", group: 1, label: "Main Wallet", value: 20 },
-      { id: "wallet1", group: 2, label: "Exchange Wallet", value: 15 },
-      { id: "wallet2", group: 3, label: "Unknown Wallet", value: 10 },
-      { id: "wallet3", group: 2, label: "Exchange Wallet", value: 12 },
-      { id: "wallet4", group: 4, label: "Mixer", value: 8 },
-    ],
-    links: [
-      { source: "main-wallet", target: "wallet1", value: 5.2, timestamp: "2023-10-15T14:23:45Z" },
-      { source: "wallet1", target: "wallet2", value: 3.1, timestamp: "2023-10-16T09:12:33Z" },
-      { source: "wallet2", target: "main-wallet", value: 1.5, timestamp: "2023-10-17T18:45:12Z" },
-      { source: "main-wallet", target: "wallet3", value: 7.8, timestamp: "2023-10-18T11:34:56Z" },
-    ],
-  },
-}
-
 // Initialize Solana connection with the provided RPC URL
 export async function getConnection(rpcUrl?: string) {
-  // If mock mode is enabled, don't attempt to connect to an RPC
-  if (ENABLE_MOCK_MODE) {
-    console.log("Mock mode enabled - not connecting to RPC")
-    return null
-  }
-
   try {
     // Dynamically import Solana web3.js to avoid SSR issues
     const solanaWeb3 = await import("@solana/web3.js")
@@ -83,11 +48,6 @@ export async function getConnection(rpcUrl?: string) {
 
 // Helper function to check connection status
 export async function isConnected(rpcUrl?: string) {
-  // If mock mode is enabled, pretend we're connected
-  if (ENABLE_MOCK_MODE) {
-    return true
-  }
-
   try {
     const conn = await getConnection(rpcUrl)
     if (!conn) return false
@@ -102,11 +62,6 @@ export async function isConnected(rpcUrl?: string) {
 }
 
 export async function getWalletBalance(address: string, rpcUrl?: string): Promise<number> {
-  // If mock mode is enabled, return mock data
-  if (ENABLE_MOCK_MODE) {
-    return mockData.balance
-  }
-
   try {
     const conn = await getConnection(rpcUrl)
     if (!conn || !PublicKey) {
@@ -125,11 +80,6 @@ export async function getWalletBalance(address: string, rpcUrl?: string): Promis
 }
 
 export async function getTransactionCount(address: string, rpcUrl?: string): Promise<number> {
-  // If mock mode is enabled, return mock data
-  if (ENABLE_MOCK_MODE) {
-    return mockData.transactionCount
-  }
-
   try {
     const conn = await getConnection(rpcUrl)
     if (!conn || !PublicKey) {
@@ -156,16 +106,6 @@ export async function getWalletActivity(
   incoming: number
   outgoing: number
 }> {
-  // If mock mode is enabled, return mock data
-  if (ENABLE_MOCK_MODE) {
-    return {
-      first: mockData.firstActivity,
-      last: mockData.lastActivity,
-      incoming: mockData.incomingVolume,
-      outgoing: mockData.outgoingVolume,
-    }
-  }
-
   try {
     const conn = await getConnection(rpcUrl)
     if (!conn || !PublicKey) {
@@ -239,11 +179,6 @@ export async function getWalletActivity(
 }
 
 export async function getTransactionHistory(address: string, limit = 20, rpcUrl?: string): Promise<Transaction[]> {
-  // If mock mode is enabled, return mock data
-  if (ENABLE_MOCK_MODE) {
-    return mockData.transactions
-  }
-
   try {
     const conn = await getConnection(rpcUrl)
     if (!conn || !PublicKey) {
@@ -362,19 +297,6 @@ export async function getTransactionFlowData(
   minAmount = 0,
   rpcUrl?: string,
 ): Promise<any> {
-  // If mock mode is enabled, return mock data
-  if (ENABLE_MOCK_MODE) {
-    // Replace the main wallet ID with the actual wallet address
-    const mockFlowData = JSON.parse(JSON.stringify(mockData.flowData))
-    mockFlowData.nodes[0].id = walletAddress
-    mockFlowData.links = mockFlowData.links.map((link) => {
-      if (link.source === "main-wallet") link.source = walletAddress
-      if (link.target === "main-wallet") link.target = walletAddress
-      return link
-    })
-    return mockFlowData
-  }
-
   try {
     const conn = await getConnection(rpcUrl)
     if (!conn || !PublicKey) {
@@ -473,11 +395,6 @@ export async function getTransactionFlowData(
 
 // Token analysis functions
 export async function getTokenHolders(tokenAddress: string, rpcUrl?: string): Promise<string[]> {
-  // If mock mode is enabled, return mock data
-  if (ENABLE_MOCK_MODE) {
-    return ["wallet1", "wallet2", "wallet3", "wallet4", "wallet5"]
-  }
-
   try {
     const conn = await getConnection(rpcUrl)
     if (!conn || !PublicKey) {
@@ -487,7 +404,8 @@ export async function getTokenHolders(tokenAddress: string, rpcUrl?: string): Pr
     // In a real implementation, you would fetch token holders from the blockchain
     // This is a complex operation requiring SPL token account lookups
 
-    return [] // Return empty array instead of mock data
+    // For now, return an empty array
+    return []
   } catch (error) {
     console.error("Error fetching token holders:", error)
     throw error
@@ -495,34 +413,19 @@ export async function getTokenHolders(tokenAddress: string, rpcUrl?: string): Pr
 }
 
 export async function detectWalletClusters(tokenAddress: string, rpcUrl?: string): Promise<boolean> {
-  // If mock mode is enabled, return mock data
-  if (ENABLE_MOCK_MODE) {
-    return Math.random() > 0.5
-  }
-
   // This would require complex analysis of transaction patterns
-  // For now, return false instead of mock data
+  // For now, return false
   return false
 }
 
 export async function detectBundledRug(tokenAddress: string, rpcUrl?: string): Promise<boolean> {
-  // If mock mode is enabled, return mock data
-  if (ENABLE_MOCK_MODE) {
-    return Math.random() > 0.7
-  }
-
   // This would require complex analysis of token transactions
-  // For now, return false instead of mock data
+  // For now, return false
   return false
 }
 
 export async function checkLiquidityRemoval(poolAddress: string, rpcUrl?: string): Promise<boolean> {
-  // If mock mode is enabled, return mock data
-  if (ENABLE_MOCK_MODE) {
-    return Math.random() > 0.8
-  }
-
   // This would require analysis of liquidity pool transactions
-  // For now, return false instead of mock data
+  // For now, return false
   return false
 }
