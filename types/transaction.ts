@@ -1,84 +1,92 @@
+// Transaction types for the application
+
 export interface Transaction {
   signature: string
-  blockTime: number
-  slot: number
-  from: string
+  timestamp?: string
+  blockTime?: number
+  from?: string
   to?: string
+  source?: string
+  destination?: string
   amount?: number
-  fee?: number
-  status: "success" | "failure"
-  type: "transfer" | "swap" | "stake" | "unstake" | "create" | "close" | "unknown"
+  status: string
+  type: string
   programId?: string
-  tokenAddress?: string
-  memo?: string
+  instructions?: string[]
+  fee?: number
+  slot?: number
+  program?: string
   cluster?: string
 }
 
-export interface TransactionDetails extends Transaction {
-  instructions: Instruction[]
-  accounts: string[]
-  recentBlockhash: string
-  logs?: string[]
+export interface TransactionFlowNode {
+  id: string
+  address?: string
+  label?: string
+  type?: string
+  value?: number
+  group?: number
 }
 
-export interface Instruction {
-  programId: string
-  accounts: string[]
-  data: string
+export interface TransactionFlowLink {
+  id?: string
+  source: string
+  target: string
+  value?: number
+  timestamp?: string
+}
+
+export interface TransactionFlowData {
+  nodes: TransactionFlowNode[]
+  links: TransactionFlowLink[]
+}
+
+export interface TransactionFilter {
+  dateRange?: {
+    start: Date | null
+    end: Date | null
+  }
+  types?: string[]
+  minAmount?: number
+  maxAmount?: number
+  status?: string[]
 }
 
 export interface TransactionCluster {
   id: string
   transactions: Transaction[]
-  addresses: string[]
-  totalValue: number
-  startTime: number
-  endTime: number
-  riskScore: number
   pattern: string
+  riskScore: number
+  wallets: string[]
+  totalValue: number
+  timestamp: string
 }
 
-export interface TransactionFlow {
-  nodes: FlowNode[]
-  links: FlowLink[]
-}
-
-export interface FlowNode {
-  id: string
-  label: string
-  type: "wallet" | "contract" | "exchange" | "mixer" | "unknown"
-  value: number
-  riskScore?: number
-}
-
-export interface FlowLink {
-  source: string
-  target: string
-  value: number
-  transactions: string[]
-}
-
-export interface TransactionFilters {
-  startDate?: Date
-  endDate?: Date
-  minAmount?: number
-  maxAmount?: number
-  types?: string[]
-  status?: string[]
-  addresses?: string[]
-  programIds?: string[]
+export interface TransactionTimeline {
+  date: string
+  transactions: Transaction[]
+  totalValue: number
 }
 
 export interface TransactionStats {
   totalCount: number
-  successCount: number
-  failureCount: number
   totalVolume: number
-  averageAmount: number
-  typeDistribution: Record<string, number>
+  avgTransactionSize: number
+  largestTransaction: number
+  mostActiveDay: string
+  mostCommonType: string
 }
 
-export interface TransactionFlowData {
-  nodes: FlowNode[]
-  links: FlowLink[]
+export interface TransactionSearchResult {
+  transaction: Transaction
+  relevanceScore: number
+  matchedFields: string[]
+}
+
+export interface TransactionExport {
+  format: "csv" | "json" | "pdf"
+  data: Transaction[]
+  filters?: TransactionFilter
+  timestamp: string
+  filename: string
 }

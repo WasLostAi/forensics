@@ -3,16 +3,15 @@ import type { RiskScore, RiskFactor, RiskLevel, TransactionRiskScore } from "@/t
 import type { Transaction, TransactionFlowData } from "@/types/transaction"
 
 // Define risk types if they don't exist
-if (typeof window !== "undefined" && !window.RiskTypes) {
-  window.RiskTypes = {
-    LOW: "low",
-    MEDIUM: "medium",
-    HIGH: "high",
-    UNKNOWN: "unknown",
-  }
+// Fix: Use a safer approach to handle global variables
+const RiskTypes = {
+  LOW: "low",
+  MEDIUM: "medium",
+  HIGH: "high",
+  UNKNOWN: "unknown",
 }
 
-// RiskScoringService class - MISSING EXPORT
+// RiskScoringService class
 export class RiskScoringService {
   // Risk factor weights (out of 100)
   private static RISK_WEIGHTS = {

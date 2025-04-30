@@ -12,30 +12,39 @@ const nextConfig = {
     unoptimized: true,
   },
   // Webpack configuration to handle Solana dependencies
-  webpack: (config, { webpack }) => {
-    // Add fallbacks for node modules
-    config.resolve.fallback = {
-      ...config.resolve.fallback,
-      fs: false,
-      os: false,
-      path: false,
-      crypto: false,
-      stream: false,
-      http: false,
-      https: false,
-      zlib: false,
-      assert: false,
-      net: false,
-      tls: false,
-      child_process: false,
-    };
-    
-    // Add buffer polyfill
-    config.plugins.push(
-      new webpack.ProvidePlugin({
-        Buffer: ['buffer', 'Buffer'],
-      })
-    );
+  webpack: (config, { isServer, webpack }) => {
+    // Polyfill for Node.js core modules
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        fs: false,
+        os: false,
+        path: false,
+        crypto: false,
+        stream: false,
+        http: false,
+        https: false,
+        zlib: false,
+        assert: false,
+        net: false,
+        tls: false,
+        child_process: false,
+      };
+      
+      // Add buffer polyfill
+      config.plugins.push(
+        new webpack.ProvidePlugin({
+          Buffer: ['buffer', 'Buffer'],
+        })
+      );
+      
+      // Add process polyfill
+      config.plugins.push(
+        new webpack.ProvidePlugin({
+          process: 'process/browser',
+        })
+      );
+    }
     
     return config;
   },
