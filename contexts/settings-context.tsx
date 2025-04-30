@@ -11,10 +11,6 @@ type SettingsContextType = {
   apiError: string | null
   checkApiCredentials: () => Promise<void>
   isCheckingApi: boolean
-  rpcUrl: string
-  setRpcUrl: (url: string) => void
-  selectedRpcName: string
-  setSelectedRpcName: (name: string) => void
 }
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined)
@@ -26,8 +22,6 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   )
   const [apiError, setApiError] = useState<string | null>(null)
   const [isCheckingApi, setIsCheckingApi] = useState(false)
-  const [rpcUrl, setRpcUrl] = useState<string>(process.env.NEXT_PUBLIC_QUICKNODE_RPC_URL || "")
-  const [selectedRpcName, setSelectedRpcName] = useState<string>("QuickNode")
 
   // Function to check API credentials
   const checkApiCredentials = async () => {
@@ -57,9 +51,22 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   }
 
   // Check API credentials on mount, but with a delay to not block initial render
+  // and wrapped in a try-catch to prevent app crashes
   useEffect(() => {
     const timer = setTimeout(() => {
-      checkApiCredentials()
+      try {
+        checkApiCredentials().catch((err) => {
+          console.error("Failed to check API credentials:", err)
+          setApiStatus("network-error")
+          setApiError("Failed to check API credentials")
+          setIsCheckingApi(false)
+        })
+      } catch (error) {
+        console.error("Error in API credential check:", error)
+        setApiStatus("network-error")
+        setApiError("Error in API credential check")
+        setIsCheckingApi(false)
+      }
     }, 1000)
 
     return () => clearTimeout(timer)
@@ -67,30 +74,29 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
 
   // Load settings from localStorage
   useEffect(() => {
-    const savedSettings = localStorage.getItem("solanaForensicsSettings")
-    if (savedSettings) {
-      try {
-        const settings = JSON.parse(savedSettings)
-        setUseMockData(settings.useMockData ?? true)
-        if (settings.rpcUrl) setRpcUrl(settings.rpcUrl)
-        if (settings.selectedRpcName) setSelectedRpcName(settings.selectedRpcName)
-      } catch (e) {
-        console.error("Error parsing saved settings:", e)
+    try {
+      const savedSettings = localStorage.getItem("solanaForensicsSettings")
+      if (savedSettings) {
+        try {
+          const settings = JSON.parse(savedSettings)
+          setUseMockData(settings.useMockData ?? true)
+        } catch (e) {
+          console.error("Error parsing saved settings:", e)
+        }
       }
+    } catch (error) {
+      console.error("Error accessing localStorage:", error)
     }
   }, [])
 
   // Save settings to localStorage
   useEffect(() => {
-    localStorage.setItem(
-      "solanaForensicsSettings",
-      JSON.stringify({
-        useMockData,
-        rpcUrl,
-        selectedRpcName,
-      }),
-    )
-  }, [useMockData, rpcUrl, selectedRpcName])
+    try {
+      localStorage.setItem("solanaForensicsSettings", JSON.stringify({ useMockData }))
+    } catch (error) {
+      console.error("Error saving to localStorage:", error)
+    }
+  }, [useMockData])
 
   return (
     <SettingsContext.Provider
@@ -101,10 +107,6 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
         apiError,
         checkApiCredentials,
         isCheckingApi,
-        rpcUrl,
-        setRpcUrl,
-        selectedRpcName,
-        setSelectedRpcName,
       }}
     >
       {children}
