@@ -10,10 +10,7 @@ import { supabase } from "@/lib/supabase"
 // Admin wallet address
 const ADMIN_WALLET_ADDRESS = "AuwUfiwsXA6VibDjR579HWLhDUUoa5s6T7i7KPyLUa9F"
 
-// Judge access token (in a real app, this would be stored securely)
-const JUDGE_ACCESS_TOKEN = "judge-special-access-token"
-
-type UserRole = "user" | "admin" | "judge"
+type UserRole = "user" | "admin"
 
 type AuthContextType = {
   user: User | null
@@ -39,17 +36,12 @@ type AuthContextType = {
     error: Error | null
     success: boolean
   }>
-  signInAsJudge: () => Promise<{
-    error: Error | null
-    success: boolean
-  }>
   signOut: () => Promise<void>
   resetPassword: (email: string) => Promise<{
     error: Error | null
     success: boolean
   }>
   isAdmin: () => boolean
-  isJudge: () => boolean
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -67,31 +59,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return walletAddress === ADMIN_WALLET_ADDRESS
   }
 
-  // Check if the user is a judge
-  const isJudge = () => {
-    return userRole === "judge"
-  }
-
   // Update user role when wallet address changes
   useEffect(() => {
     if (walletAddress === ADMIN_WALLET_ADDRESS) {
       setUserRole("admin")
-    } else if (userRole === "judge") {
-      // Keep judge role if already set
     } else {
       setUserRole("user")
     }
-  }, [walletAddress, userRole])
+  }, [walletAddress])
 
   useEffect(() => {
     const setData = async () => {
       try {
-        // Check for judge token in localStorage
-        const judgeToken = localStorage.getItem("judge_access_token")
-        if (judgeToken === JUDGE_ACCESS_TOKEN) {
-          setUserRole("judge")
-        }
-
         // Get session from Supabase
         const {
           data: { session },
@@ -117,16 +96,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             }
           }
 
-          // Check for judge role in metadata
-          const role = session.user.user_metadata?.role as string | undefined
-          if (role === "judge") {
-            setUserRole("judge")
-          }
-
           // Get user profile from database
           const { data: profile } = await supabase
             .from("profiles")
-            .select("wallet_address, role")
+            .select("wallet_address")
             .eq("id", session.user.id)
             .single()
 
@@ -135,10 +108,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             if (profile.wallet_address === ADMIN_WALLET_ADDRESS) {
               setUserRole("admin")
             }
-          }
-
-          if (profile?.role === "judge") {
-            setUserRole("judge")
           }
         }
 
@@ -160,17 +129,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setWalletAddress(walletAddr)
           if (walletAddr === ADMIN_WALLET_ADDRESS) {
             setUserRole("admin")
+          } else {
+            setUserRole("user")
           }
-        }
-
-        // Check for judge role in metadata
-        const role = session.user.user_metadata?.role as string | undefined
-        if (role === "judge") {
-          setUserRole("judge")
         }
       } else {
         setWalletAddress(null)
-        // Don't reset userRole here to maintain judge status if set via localStorage
+        setUserRole("user")
       }
     })
 
@@ -293,41 +258,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  const signInAsJudge = async () => {
-    try {
-      // Store judge token in localStorage
-      localStorage.setItem("judge_access_token", JUDGE_ACCESS_TOKEN)
-
-      // Set judge role
-      setUserRole("judge")
-
-      // Create an anonymous session for the judge
-      const { data, error } = await supabase.auth.signUp({
-        email: `judge-${Date.now()}@solana-forensics.judge`,
-        password: `judge-${Date.now()}-${Math.random().toString(36).substring(2)}`,
-        options: {
-          data: {
-            role: "judge",
-          },
-        },
-      })
-
-      if (error) {
-        return { error, success: false }
-      }
-
-      router.push("/dashboard")
-      return { error: null, success: true }
-    } catch (error) {
-      console.error("Judge sign in error:", error)
-      return { error: error as Error, success: false }
-    }
-  }
-
   const signOut = async () => {
-    // Remove judge token from localStorage
-    localStorage.removeItem("judge_access_token")
-
     await supabase.auth.signOut()
     setWalletAddress(null)
     setUserRole("user")
@@ -359,11 +290,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     signIn,
     signUp,
     signInWithWallet,
-    signInAsJudge,
     signOut,
     resetPassword,
     isAdmin,
-    isJudge,
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
