@@ -6,7 +6,7 @@ import { TransactionClustersView } from "@/components/transaction-clusters-view"
 import { WalletRiskScore } from "@/components/wallet-risk-score"
 import { TransactionRiskAnalysis } from "@/components/transaction-risk-analysis"
 import { RiskMetricsDashboard } from "@/components/risk-metrics-dashboard"
-import { WalletAdvancedRisk } from "@/components/wallet-advanced-risk"
+// Remove the import for WalletAdvancedRisk
 
 interface WalletPageProps {
   params: {
@@ -31,8 +31,7 @@ export default function WalletPage({ params }: WalletPageProps) {
         </div>
       </div>
 
-      {/* Add the new component here */}
-      <WalletAdvancedRisk walletAddress={address} />
+      {/* Remove the WalletAdvancedRisk component */}
 
       <Tabs defaultValue="flow">
         <TabsList>
