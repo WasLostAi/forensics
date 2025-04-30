@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { ApiCredentialsForm } from "@/components/api-credentials-form"
+import { SupabaseConnectionStatus } from "@/components/supabase-connection-status"
 
 export const metadata: Metadata = {
   title: "Settings | Solana Forensic Toolkit",
@@ -13,6 +14,16 @@ export default function SettingsPage() {
       <h1 className="text-3xl font-bold">Settings</h1>
 
       <div className="grid gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Database Connection</CardTitle>
+            <CardDescription>Status of your Supabase database connection</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <SupabaseConnectionStatus />
+          </CardContent>
+        </Card>
+
         <Card>
           <CardHeader>
             <CardTitle>API Credentials</CardTitle>
