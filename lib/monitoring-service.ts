@@ -1,58 +1,9 @@
 import type { ICOProject, RugPullData, MixerData, SniperData, MonitoringAlert, FundFlowData } from "@/types/monitoring"
 
 /**
- * Service for monitoring and analyzing wallet activity
+ * Service for monitoring and analyzing high-risk activities on Solana
  */
 export class MonitoringService {
-  /**
-   * Analyze mixer usage for a wallet
-   */
-  static async analyzeMixerUsage(walletAddress: string) {
-    // Mock implementation
-    return {
-      usedMixer: Math.random() > 0.7,
-      volume: Math.floor(Math.random() * 1000000),
-      riskScore: Math.floor(Math.random() * 100),
-      mixerAddresses: ["mixer1.solana.example", "mixer2.solana.example"],
-    }
-  }
-
-  /**
-   * Check sniper activity for a wallet
-   */
-  static async checkSniperActivity(walletAddress: string) {
-    // Mock implementation
-    return {
-      isSniper: Math.random() > 0.7,
-      profit: Math.floor(Math.random() * 500000),
-      transactionCount: Math.floor(Math.random() * 100),
-      successRate: Math.random(),
-    }
-  }
-
-  /**
-   * Check rug pull association for a wallet
-   */
-  static async checkRugPullAssociation(walletAddress: string) {
-    // Mock implementation
-    return {
-      isRugPuller: Math.random() > 0.8,
-      rugPullCount: Math.floor(Math.random() * 5) + 1,
-    }
-  }
-
-  /**
-   * Get social media mentions for a wallet
-   */
-  static async getSocialMediaMentions(walletAddress: string) {
-    // Mock implementation
-    return {
-      twitterMentions: Math.floor(Math.random() * 50),
-      discordMentions: Math.floor(Math.random() * 30),
-      telegramMentions: Math.floor(Math.random() * 20),
-      recentPosts: [],
-    }
-  }
   /**
    * Fetch X-ICO projects from the database or API
    */
@@ -574,95 +525,98 @@ export class MonitoringService {
   /**
    * Analyze a wallet for mixer usage
    */
-  // public static async analyzeMixerUsage(walletAddress: string): Promise<{
-  //   usedMixer: boolean
-  //   mixerAddresses: string[]
-  //   volume: number
-  //   riskScore: number
-  // }> {
-  //   try {
-  //     // In a real implementation, this would analyze on-chain data
-  //     // For now, we'll return mock data
-  //     const mockMixerUsage = {
-  //       usedMixer: Math.random() > 0.7, // 30% chance of mixer usage
-  //       mixerAddresses: ["MixerAddress1", "MixerAddress2"],
-  //       volume: Math.floor(Math.random() * 1000000),
-  //       riskScore: Math.floor(Math.random() * 100),
-  //     }
+  public static async analyzeMixerUsage(walletAddress: string): Promise<{
+    usedMixer: boolean
+    mixerAddresses: string[]
+    volume: number
+    riskScore: number
+  }> {
+    try {
+      // In a real implementation, this would analyze on-chain data
+      // For now, we'll return mock data
+      const mockMixerUsage = {
+        usedMixer: Math.random() > 0.7, // 30% chance of mixer usage
+        mixerAddresses: ["MixerAddress1", "MixerAddress2"],
+        volume: Math.floor(Math.random() * 1000000),
+        riskScore: Math.floor(Math.random() * 100),
+      }
 
-  //     return mockMixerUsage
-  //   } catch (error) {
-  //     console.error("Error analyzing mixer usage:", error)
-  //     return {
-  //       usedMixer: false,
-  //       mixerAddresses: [],
-  //       volume: 0,
-  //       riskScore: 0,
-  //     }
-  //   }
-  // }
+      return mockMixerUsage
+    } catch (error) {
+      console.error("Error analyzing mixer usage:", error)
+      return {
+        usedMixer: false,
+        mixerAddresses: [],
+        volume: 0,
+        riskScore: 0,
+      }
+    }
+  }
 
   /**
    * Check if a wallet is associated with sniping activity
    */
-  // public static async checkSniperActivity(walletAddress: string): Promise<{
-  //   isSniper: boolean
-  //   profit: number
-  //   transactionCount: number
-  //   successRate: number
-  //   riskScore: number
-  // }> {
-  //   try {
-  //     // In a real implementation, this would analyze on-chain data
-  //     // For now, we'll return mock data
-  //     const mockSniperActivity = {
-  //       isSniper: Math.random() > 0.8, // 20% chance of being a sniper
-  //       profit: Math.floor(Math.random() * 500000),
-  //       transactionCount: Math.floor(Math.random() * 5000),
-  //       successRate: Math.random() * 0.5 + 0.5, // 50-100% success rate
-  //       riskScore: Math.floor(Math.random() * 100),
-  //     }
+  public static async checkSniperActivity(walletAddress: string): Promise<{
+    isSniper: boolean
+    profit: number
+    transactionCount: number
+    successRate: number
+    riskScore: number
+  }> {
+    try {
+      // In a real implementation, this would analyze on-chain data
+      // For now, we'll return mock data
+      const mockSniperActivity = {
+        isSniper: Math.random() > 0.8, // 20% chance of being a sniper
+        profit: Math.floor(Math.random() * 500000),
+        transactionCount: Math.floor(Math.random() * 5000),
+        successRate: Math.random() * 0.5 + 0.5, // 50-100% success rate
+        riskScore: Math.floor(Math.random() * 100),
+      }
 
-  //     return mockSniperActivity
-  //   } catch (error) {
-  //     console.error("Error checking sniper activity:", error)
-  //     return {
-  //       isSniper: false,
-  //       profit: 0,
-  //       transactionCount: 0,
-  //       successRate: 0,
-  //       riskScore: 0,
-  //     }
-  //   }
-  // }
+      return mockSniperActivity
+    } catch (error) {
+      console.error("Error checking sniper activity:", error)
+      return {
+        isSniper: false,
+        profit: 0,
+        transactionCount: 0,
+        successRate: 0,
+        riskScore: 0,
+      }
+    }
+  }
 
   /**
    * Check if an address is associated with rug pulls
    */
-  // public static async checkRugPullAssociation(walletAddress: string): Promise<{
-  //   isRugPuller: boolean
-  //   rugPullCount: number
-  //   riskScore: number
-  // }> {
-  //   try {
-  //     // In a real implementation, this would analyze on-chain data
-  //     // For now, we'll return mock data
-  //     const mockRugPullAssociation = {
-  //       isRugPuller: Math.random() > 0.9, // 10% chance of being a rug puller
-  //       rugPullCount: Math.floor(Math.random() * 10),
-  //       riskScore: Math.floor(Math.random() * 100),
-  //     }
+  public static async checkRugPullAssociation(address: string): Promise<{
+    isRugPuller: boolean
+    rugPullCount: number
+    totalValue: number
+    riskScore: number
+  }> {
+    try {
+      // In a real implementation, this would analyze on-chain data
+      // For now, we'll return mock data
+      const mockRugPullAssociation = {
+        isRugPuller: Math.random() > 0.9, // 10% chance of being a rug puller
+        rugPullCount: Math.floor(Math.random() * 10),
+        totalValue: Math.floor(Math.random() * 10000000),
+        riskScore: Math.floor(Math.random() * 100),
+      }
 
-  //     return mockRugPullAssociation
-  //   } catch (error) {
-  //     console.error("Error checking rug pull association:", error)
-  //     return {
-  //       isRugPuller: false,
-  //       rugPullCount: 0,
-  //       riskScore: 0,
-  //     }
-  //   }
-  // }
+      return mockRugPullAssociation
+    } catch (error) {
+      console.error("Error checking rug pull association:", error)
+      return {
+        isRugPuller: false,
+        rugPullCount: 0,
+        totalValue: 0,
+        riskScore: 0,
+      }
+    }
+  }
 
   /**
    * Analyze a token for rug pull risk
@@ -726,55 +680,55 @@ export class MonitoringService {
   /**
    * Get social media mentions for an address
    */
-  // public static async getSocialMediaMentions(address: string): Promise<{
-  //   twitterMentions: number
-  //   discordMentions: number
-  //   telegramMentions: number
-  //   recentPosts: {
-  //     platform: string
-  //     content: string
-  //     url: string
-  //     timestamp: string
-  //   }[]
-  // }> {
-  //   try {
-  //     // In a real implementation, this would query social media APIs
-  //     // For now, we'll return mock data
-  //     const mockSocialMediaMentions = {
-  //       twitterMentions: Math.floor(Math.random() * 1000),
-  //       discordMentions: Math.floor(Math.random() * 500),
-  //       telegramMentions: Math.floor(Math.random() * 300),
-  //       recentPosts: [
-  //         {
-  //           platform: "Twitter",
-  //           content: `Send SOL to ${address.substring(0, 8)}... for 100x gains! #SolanaPump`,
-  //           url: "https://twitter.com/example/status/123456789",
-  //           timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
-  //         },
-  //         {
-  //           platform: "Discord",
-  //           content: `New ICO alert! ${address.substring(0, 8)}... is the next 100x gem!`,
-  //           url: "https://discord.com/channels/123456789/123456789",
-  //           timestamp: new Date(Date.now() - 1000 * 60 * 60 * 5).toISOString(),
-  //         },
-  //         {
-  //           platform: "Telegram",
-  //           content: `Don't miss out on ${address.substring(0, 8)}... Send SOL now for early access!`,
-  //           url: "https://t.me/example/123456789",
-  //           timestamp: new Date(Date.now() - 1000 * 60 * 60 * 8).toISOString(),
-  //         },
-  //       ],
-  //     }
+  public static async getSocialMediaMentions(address: string): Promise<{
+    twitterMentions: number
+    discordMentions: number
+    telegramMentions: number
+    recentPosts: {
+      platform: string
+      content: string
+      url: string
+      timestamp: string
+    }[]
+  }> {
+    try {
+      // In a real implementation, this would query social media APIs
+      // For now, we'll return mock data
+      const mockSocialMediaMentions = {
+        twitterMentions: Math.floor(Math.random() * 1000),
+        discordMentions: Math.floor(Math.random() * 500),
+        telegramMentions: Math.floor(Math.random() * 300),
+        recentPosts: [
+          {
+            platform: "Twitter",
+            content: `Send SOL to ${address.substring(0, 8)}... for 100x gains! #SolanaPump`,
+            url: "https://twitter.com/example/status/123456789",
+            timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
+          },
+          {
+            platform: "Discord",
+            content: `New ICO alert! ${address.substring(0, 8)}... is the next 100x gem!`,
+            url: "https://discord.com/channels/123456789/123456789",
+            timestamp: new Date(Date.now() - 1000 * 60 * 60 * 5).toISOString(),
+          },
+          {
+            platform: "Telegram",
+            content: `Don't miss out on ${address.substring(0, 8)}... Send SOL now for early access!`,
+            url: "https://t.me/example/123456789",
+            timestamp: new Date(Date.now() - 1000 * 60 * 60 * 8).toISOString(),
+          },
+        ],
+      }
 
-  //     return mockSocialMediaMentions
-  //   } catch (error) {
-  //     console.error("Error getting social media mentions:", error)
-  //     return {
-  //       twitterMentions: 0,
-  //       discordMentions: 0,
-  //       telegramMentions: 0,
-  //       recentPosts: [],
-  //     }
-  //   }
-  // }
+      return mockSocialMediaMentions
+    } catch (error) {
+      console.error("Error getting social media mentions:", error)
+      return {
+        twitterMentions: 0,
+        discordMentions: 0,
+        telegramMentions: 0,
+        recentPosts: [],
+      }
+    }
+  }
 }

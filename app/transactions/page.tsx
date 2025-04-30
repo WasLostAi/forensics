@@ -73,11 +73,6 @@ export default function TransactionsPage() {
                 </div>
               </div>
             </div>
-            <div className="mt-4 text-center">
-              <Button asChild variant="outline">
-                <Link href="/wallet">View All Transactions</Link>
-              </Button>
-            </div>
           </div>
         </CardContent>
       </Card>

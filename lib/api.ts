@@ -1,34 +1,6 @@
 import type { WalletData } from "@/types/wallet"
-import type { Transaction, TransactionFlowData } from "@/types/transaction"
-import type { EntityLabel } from "@/types/entity"
-import { fetchArkhamTransactionFlow } from "./arkham-api"
 
-// In a real implementation, these functions would make API calls to a backend service
-// that interacts with the Solana blockchain and a database
-
-// Mock function for fetching transaction flow data from Solana
-async function getTransactionFlowData(walletAddress: string, date?: Date, minAmount = 0): Promise<TransactionFlowData> {
-  // Simulate API call
-  await new Promise((resolve) => setTimeout(resolve, 500))
-
-  // Mock data
-  return {
-    nodes: [
-      { id: walletAddress, group: 1, label: "Main Wallet", value: 20 },
-      { id: "wallet1", group: 2, label: "Exchange Wallet", value: 15 },
-      { id: "wallet2", group: 3, label: "Unknown Wallet", value: 10 },
-      { id: "wallet3", group: 2, label: "Exchange Wallet", value: 12 },
-      { id: "wallet4", group: 4, label: "Mixer", value: 8 },
-    ],
-    links: [
-      { source: walletAddress, target: "wallet1", value: 5.2, timestamp: "2023-10-15T14:23:45Z" },
-      { source: "wallet1", target: "wallet2", value: 3.1, timestamp: "2023-10-16T09:12:33Z" },
-      { source: "wallet2", target: walletAddress, value: 1.5, timestamp: "2023-10-17T18:45:12Z" },
-      { source: walletAddress, target: "wallet3", value: 7.8, timestamp: "2023-10-18T11:34:56Z" },
-    ],
-  }
-}
-
+// Fetch wallet overview - MISSING EXPORT
 export async function fetchWalletOverview(walletAddress: string): Promise<WalletData> {
   // Simulate API call
   await new Promise((resolve) => setTimeout(resolve, 1000))
@@ -47,60 +19,149 @@ export async function fetchWalletOverview(walletAddress: string): Promise<Wallet
   }
 }
 
-export async function fetchTransactions(walletAddress: string, page = 1): Promise<Transaction[]> {
-  // Simulate API call
-  await new Promise((resolve) => setTimeout(resolve, 1000))
-
-  // In a real implementation, this would fetch from the Solana blockchain
-  return []
-}
-
-export async function fetchTransactionFlowData(
-  walletAddress: string,
-  date?: Date,
-  minAmount = 0,
-): Promise<TransactionFlowData> {
-  // Simulate API call
-  await new Promise((resolve) => setTimeout(resolve, 1000))
+// Validate and sanitize URL
+function sanitizeUrl(url: string): string {
+  if (!url) return ""
 
   try {
-    // Try to use the Arkham Exchange API first
-    const data = await fetchArkhamTransactionFlow(walletAddress)
-    return data
-  } catch (error) {
-    console.error("Failed to fetch transaction flow data from Arkham:", error)
-
-    // Try to use the actual Solana data as fallback
-    try {
-      const data = await getTransactionFlowData(walletAddress, date, minAmount)
-      return data
-    } catch (fallbackError) {
-      console.error("Failed to fetch transaction flow data from Solana:", fallbackError)
-
-      // Mock data as final fallback
-      return {
-        nodes: [
-          { id: walletAddress, group: 1, label: "Main Wallet", value: 20 },
-          { id: "wallet1", group: 2, label: "Exchange Wallet", value: 15 },
-          { id: "wallet2", group: 3, label: "Unknown Wallet", value: 10 },
-          { id: "wallet3", group: 2, label: "Exchange Wallet", value: 12 },
-          { id: "wallet4", group: 4, label: "Mixer", value: 8 },
-        ],
-        links: [
-          { source: walletAddress, target: "wallet1", value: 5.2, timestamp: "2023-10-15T14:23:45Z" },
-          { source: "wallet1", target: "wallet2", value: 3.1, timestamp: "2023-10-16T09:12:33Z" },
-          { source: "wallet2", target: walletAddress, value: 1.5, timestamp: "2023-10-17T18:45:12Z" },
-          { source: walletAddress, target: "wallet3", value: 7.8, timestamp: "2023-10-18T11:34:56Z" },
-        ],
-      }
+    const parsedUrl = new URL(url)
+    // Only allow http and https protocols
+    if (parsedUrl.protocol !== "http:" && parsedUrl.protocol !== "https:") {
+      throw new Error("Invalid protocol")
     }
+    return parsedUrl.toString()
+  } catch (error) {
+    console.error("Invalid URL:", url)
+    return ""
   }
 }
 
-export async function fetchEntityLabels(walletAddress: string): Promise<EntityLabel[]> {
-  // Simulate API call
-  await new Promise((resolve) => setTimeout(resolve, 800))
+// Make a GET request with proper error handling and timeout
+export async function fetchData(url: string, options: RequestInit = {}) {
+  const sanitizedUrl = sanitizeUrl(url)
+  if (!sanitizedUrl) {
+    throw new Error("Invalid URL")
+  }
 
-  // In a real implementation, this would fetch from a database
-  return []
+  try {
+    // Set timeout to prevent hanging requests
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 30000) // 30 second timeout
+
+    const response = await fetch(sanitizedUrl, {
+      ...options,
+      headers: {
+        "Content-Type": "application/json",
+        ...options.headers,
+      },
+      signal: controller.signal,
+    })
+
+    clearTimeout(timeoutId)
+
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status} ${response.statusText}`)
+    }
+
+    return await response.json()
+  } catch (error) {
+    if (error.name === "AbortError") {
+      throw new Error("Request timed out")
+    }
+    throw error
+  }
+}
+
+// Make a POST request with proper validation and error handling
+export async function postData(url: string, data: any, options: RequestInit = {}) {
+  const sanitizedUrl = sanitizeUrl(url)
+  if (!sanitizedUrl) {
+    throw new Error("Invalid URL")
+  }
+
+  try {
+    // Set timeout to prevent hanging requests
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 30000) // 30 second timeout
+
+    const response = await fetch(sanitizedUrl, {
+      ...options,
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...options.headers,
+      },
+      body: JSON.stringify(data),
+      signal: controller.signal,
+    })
+
+    clearTimeout(timeoutId)
+
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status} ${response.statusText}`)
+    }
+
+    return await response.json()
+  } catch (error) {
+    if (error.name === "AbortError") {
+      throw new Error("Request timed out")
+    }
+    throw error
+  }
+}
+
+// Validate API response to prevent JSON injection attacks
+export function validateApiResponse(data: any): any {
+  if (!data) return null
+
+  // If data is a string, check for potential script injection
+  if (typeof data === "string") {
+    // Remove any script tags or potentially dangerous content
+    return data
+      .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
+      .replace(/javascript:/gi, "")
+      .replace(/on\w+=/gi, "")
+  }
+
+  // If data is an object, recursively validate its properties
+  if (typeof data === "object" && data !== null) {
+    if (Array.isArray(data)) {
+      return data.map((item) => validateApiResponse(item))
+    } else {
+      const result: Record<string, any> = {}
+      for (const key in data) {
+        if (Object.prototype.hasOwnProperty.call(data, key)) {
+          result[key] = validateApiResponse(data[key])
+        }
+      }
+      return result
+    }
+  }
+
+  return data
+}
+
+// Rate limiting helper to prevent API abuse
+const rateLimits: Record<string, { count: number; timestamp: number }> = {}
+
+export function checkRateLimit(key: string, limit: number, windowMs: number): boolean {
+  const now = Date.now()
+
+  if (!rateLimits[key]) {
+    rateLimits[key] = { count: 1, timestamp: now }
+    return true
+  }
+
+  const record = rateLimits[key]
+
+  // Reset if outside window
+  if (now - record.timestamp > windowMs) {
+    record.count = 1
+    record.timestamp = now
+    return true
+  }
+
+  // Increment and check
+  record.count++
+  return record.count <= limit
 }

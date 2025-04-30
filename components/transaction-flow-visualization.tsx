@@ -6,11 +6,8 @@ import { useCallback, useEffect } from "react"
 import ReactFlow, {
   Background,
   Controls,
-  type Edge,
   Handle,
   MiniMap,
-  type Node,
-  type NodeProps,
   Position,
   useNodesState,
   useEdgesState,
@@ -41,7 +38,7 @@ interface TransactionFlowVisualizationProps {
 
 export function TransactionFlowVisualization({ nodes, links, onNodeClick }: TransactionFlowVisualizationProps) {
   // Convert the data to React Flow format
-  const initialNodes: Node[] = nodes.map((node) => {
+  const initialNodes = nodes.map((node) => {
     // Determine node color based on group
     let color = "#9945FF" // Default Solana purple
     if (node.group === 1) {
@@ -68,7 +65,7 @@ export function TransactionFlowVisualization({ nodes, links, onNodeClick }: Tran
     }
   })
 
-  const initialEdges: Edge[] = links.map((link, index) => {
+  const initialEdges = links.map((link, index) => {
     // Calculate edge thickness based on value
     const value = link.value || 1
     const maxValue = Math.max(...links.map((l) => l.value || 1))
@@ -138,7 +135,7 @@ export function TransactionFlowVisualization({ nodes, links, onNodeClick }: Tran
 
   // Handle node click
   const handleNodeClick = useCallback(
-    (event: React.MouseEvent, node: Node) => {
+    (event: React.MouseEvent, node: any) => {
       if (onNodeClick) {
         onNodeClick(node.id)
       }
@@ -173,7 +170,7 @@ export function TransactionFlowVisualization({ nodes, links, onNodeClick }: Tran
 }
 
 // Custom node component
-function WalletNode({ data }: NodeProps) {
+function WalletNode({ data }: any) {
   const { label, value, color, address } = data
 
   // Calculate node size based on value
