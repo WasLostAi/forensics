@@ -10,6 +10,7 @@ import { AlertTriangle, CheckCircle2, ExternalLink, Link, Network, Pencil, Trash
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { fetchEntityLabelsFromDB, deleteEntityLabel } from "@/lib/entity-service"
 import type { EntityLabel } from "@/types/entity"
+import type { EntitySearchFilter } from "@/components/entity-advanced-search"
 import { useToast } from "@/hooks/use-toast"
 import {
   Dialog,
@@ -22,12 +23,11 @@ import {
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
 interface EntityTableProps {
-  searchQuery?: string
-  categoryFilter?: string
+  searchFilters?: EntitySearchFilter[]
   onEditEntity: (id: string) => void
 }
 
-export function EntityTable({ searchQuery = "", categoryFilter, onEditEntity }: EntityTableProps) {
+export function EntityTable({ searchFilters = [], onEditEntity }: EntityTableProps) {
   const [entities, setEntities] = useState<EntityLabel[]>([])
   const [filteredEntities, setFilteredEntities] = useState<EntityLabel[]>([])
   const [selectedEntities, setSelectedEntities] = useState<string[]>([])
@@ -53,21 +53,133 @@ export function EntityTable({ searchQuery = "", categoryFilter, onEditEntity }: 
 
     let result = [...entities]
 
-    // Apply category filter
-    if (categoryFilter) {
-      result = result.filter((entity) => entity.category === categoryFilter)
-    }
+    // Apply advanced search filters
+    if (searchFilters.length > 0) {
+      result = result.filter((entity) => {
+        return searchFilters.every((filter) => {
+          if (!filter.active) return true
 
-    // Apply search query
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase()
-      result = result.filter(
-        (entity) =>
-          entity.label.toLowerCase().includes(query) ||
-          entity.address.toLowerCase().includes(query) ||
-          entity.category.toLowerCase().includes(query) ||
-          (entity.tags && entity.tags.some((tag) => tag.toLowerCase().includes(query))),
-      )
+          switch (filter.field) {
+            case "label":
+              switch (filter.operator) {
+                case "contains":
+                  return entity.label.toLowerCase().includes((filter.value as string).toLowerCase())
+                case "equals":
+                  return entity.label.toLowerCase() === (filter.value as string).toLowerCase()
+                case "startsWith":
+                  return entity.label.toLowerCase().startsWith((filter.value as string).toLowerCase())
+                case "endsWith":
+                  return entity.label.toLowerCase().endsWith((filter.value as string).toLowerCase())
+                default:
+                  return true
+              }
+            case "address":
+              switch (filter.operator) {
+                case "contains":
+                  return entity.address.toLowerCase().includes((filter.value as string).toLowerCase())
+                case "equals":
+                  return entity.address.toLowerCase() === (filter.value as string).toLowerCase()
+                case "startsWith":
+                  return entity.address.toLowerCase().startsWith((filter.value as string).toLowerCase())
+                case "endsWith":
+                  return entity.address.toLowerCase().endsWith((filter.value as string).toLowerCase())
+                default:
+                  return true
+              }
+            case "category":
+              return entity.category === filter.value
+            case "source":
+              return entity.source === filter.value
+            case "tags":
+              if (!entity.tags) return false
+              switch (filter.operator) {
+                case "includes":
+                  return (filter.value as string[]).some((tag) =>
+                    entity.tags?.some((entityTag) => entityTag.toLowerCase().includes(tag.toLowerCase())),
+                  )
+                case "excludes":
+                  return !(filter.value as string[]).some((tag) =>
+                    entity.tags?.some((entityTag) => entityTag.toLowerCase().includes(tag.toLowerCase())),
+                  )
+                default:
+                  return true
+              }
+            case "riskScore":
+              if (entity.riskScore === undefined) return false
+              switch (filter.operator) {
+                case "equals":
+                  return entity.riskScore === filter.value
+                case "greaterThan":
+                  return entity.riskScore > (filter.value as number)
+                case "lessThan":
+                  return entity.riskScore < (filter.value as number)
+                case "between":
+                  const [min, max] = filter.value as number[]
+                  return entity.riskScore >= min && entity.riskScore <= max
+                default:
+                  return true
+              }
+            case "confidence":
+              switch (filter.operator) {
+                case "equals":
+                  return entity.confidence === filter.value
+                case "greaterThan":
+                  return entity.confidence > (filter.value as number)
+                case "lessThan":
+                  return entity.confidence < (filter.value as number)
+                case "between":
+                  const [min, max] = filter.value as number[]
+                  return entity.confidence >= min && entity.confidence <= max
+                default:
+                  return true
+              }
+            case "verified":
+              return entity.verified === filter.value
+            case "notes":
+              if (!entity.notes) return false
+              switch (filter.operator) {
+                case "contains":
+                  return entity.notes.toLowerCase().includes((filter.value as string).toLowerCase())
+                case "equals":
+                  return entity.notes.toLowerCase() === (filter.value as string).toLowerCase()
+                case "startsWith":
+                  return entity.notes.toLowerCase().startsWith((filter.value as string).toLowerCase())
+                case "endsWith":
+                  return entity.notes.toLowerCase().endsWith((filter.value as string).toLowerCase())
+                default:
+                  return true
+              }
+            case "createdAt":
+              switch (filter.operator) {
+                case "before":
+                  return new Date(entity.createdAt) < new Date(filter.value as string)
+                case "after":
+                  return new Date(entity.createdAt) > new Date(filter.value as string)
+                case "between":
+                  const [start, end] = filter.value as string[]
+                  return new Date(entity.createdAt) >= new Date(start) && new Date(entity.createdAt) <= new Date(end)
+                default:
+                  return true
+              }
+            case "updatedAt":
+              switch (filter.operator) {
+                case "before":
+                  return new Date(entity.updatedAt) < new Date(filter.value as string)
+                case "after":
+                  return new Date(entity.updatedAt) > new Date(filter.value as string)
+                case "between":
+                  const [start, end] = filter.value as string[]
+                  return new Date(entity.updatedAt) >= new Date(start) && new Date(entity.updatedAt) <= new Date(end)
+                default:
+                  return true
+              }
+            case "inCluster":
+              return filter.value ? !!entity.clusterIds?.length : !entity.clusterIds?.length
+            default:
+              return true
+          }
+        })
+      })
     }
 
     // Apply sorting
@@ -84,7 +196,7 @@ export function EntityTable({ searchQuery = "", categoryFilter, onEditEntity }: 
     }
 
     setFilteredEntities(result)
-  }, [entities, searchQuery, categoryFilter, sortConfig])
+  }, [entities, searchFilters, sortConfig])
 
   async function loadEntities() {
     setIsLoading(true)

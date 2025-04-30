@@ -1,34 +1,26 @@
 "use client"
 
-import type React from "react"
-
 import { useState } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { EntityTable } from "@/components/entity-table"
 import { EntityLabelForm } from "@/components/entity-label-form"
 import { EntityClusterView } from "@/components/entity-cluster-view"
 import { EntityStatistics } from "@/components/entity-statistics"
 import { EntityBulkOperations } from "@/components/entity-bulk-operations"
 import { EntityImportExport } from "@/components/entity-import-export"
-import { Database, Filter, Plus, Search, Tag, Upload, Users } from "lucide-react"
+import { EntityAdvancedSearch, type EntitySearchFilter } from "@/components/entity-advanced-search"
+import { Database, Filter, Plus, Tag, Upload, Users } from "lucide-react"
 import Link from "next/link"
 
 export function EntityManagementDashboard() {
-  const [searchQuery, setSearchQuery] = useState("")
-  const [categoryFilter, setCategoryFilter] = useState<string>("all")
+  const [searchFilters, setSearchFilters] = useState<EntitySearchFilter[]>([])
   const [showLabelForm, setShowLabelForm] = useState(false)
   const [selectedEntityId, setSelectedEntityId] = useState<string | null>(null)
 
-  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchQuery(e.target.value)
-  }
-
-  const handleCategoryChange = (value: string) => {
-    setCategoryFilter(value)
+  const handleSearch = (filters: EntitySearchFilter[]) => {
+    setSearchFilters(filters)
   }
 
   const handleAddEntity = () => {
@@ -123,34 +115,7 @@ export function EntityManagementDashboard() {
         </Card>
       </div>
 
-      <div className="flex flex-col md:flex-row gap-4 items-end">
-        <div className="relative flex-1">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search entities by name, address, or tag..."
-            className="pl-8"
-            value={searchQuery}
-            onChange={handleSearch}
-          />
-        </div>
-        <div className="w-full md:w-[200px]">
-          <Select value={categoryFilter} onValueChange={handleCategoryChange}>
-            <SelectTrigger>
-              <Filter className="mr-2 h-4 w-4" />
-              <SelectValue placeholder="Filter by category" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Categories</SelectItem>
-              <SelectItem value="exchange">Exchanges</SelectItem>
-              <SelectItem value="mixer">Mixers</SelectItem>
-              <SelectItem value="contract">Contracts</SelectItem>
-              <SelectItem value="individual">Individuals</SelectItem>
-              <SelectItem value="scam">Scams</SelectItem>
-              <SelectItem value="other">Other</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
+      <EntityAdvancedSearch onSearch={handleSearch} />
 
       <Tabs defaultValue="entities" className="space-y-6">
         <TabsList className="grid grid-cols-2 md:grid-cols-5 w-full">
@@ -177,11 +142,7 @@ export function EntityManagementDashboard() {
         </TabsList>
 
         <TabsContent value="entities" className="space-y-6">
-          <EntityTable
-            searchQuery={searchQuery}
-            categoryFilter={categoryFilter !== "all" ? categoryFilter : undefined}
-            onEditEntity={handleEditEntity}
-          />
+          <EntityTable searchFilters={searchFilters} onEditEntity={handleEditEntity} />
         </TabsContent>
 
         <TabsContent value="clusters" className="space-y-6">
