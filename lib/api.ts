@@ -1,7 +1,9 @@
 import type { WalletData } from "@/types/wallet"
 import type { Transaction, TransactionFlowData } from "@/types/transaction"
 import type { EntityLabel } from "@/types/entity"
+import type { RiskScore } from "@/types/risk"
 import { fetchArkhamTransactionFlow } from "./arkham-api"
+import { RiskScoringService } from "./risk-scoring-service"
 
 // In a real implementation, these functions would make API calls to a backend service
 // that interacts with the Solana blockchain and a database
@@ -98,9 +100,31 @@ export async function fetchTransactionFlowData(
 }
 
 export async function fetchEntityLabels(walletAddress: string): Promise<EntityLabel[]> {
-  // Simulate API call
-  await new Promise((resolve) => setTimeout(resolve, 800))
+  // Try to fetch from API
+  try {
+    const response = await fetch(`/api/arkham/entity?address=${walletAddress}`)
+    if (!response.ok) {
+      throw new Error(`Failed to fetch entity labels: ${response.status}`)
+    }
+    const data = await response.json()
+    return data.labels || []
+  } catch (error) {
+    console.error("Failed to fetch entity labels:", error)
+    // Return empty array as fallback
+    return []
+  }
+}
 
-  // In a real implementation, this would fetch from a database
-  return []
+export async function fetchWalletRiskScore(walletAddress: string): Promise<RiskScore> {
+  try {
+    // Get wallet data and transaction flow data
+    const walletData = await fetchWalletOverview(walletAddress)
+    const flowData = await fetchTransactionFlowData(walletAddress)
+
+    // Calculate risk score using real transaction data
+    return await RiskScoringService.calculateWalletRiskScore(walletAddress, walletData, flowData)
+  } catch (error) {
+    console.error("Failed to calculate risk score:", error)
+    throw error
+  }
 }

@@ -7,9 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { AlertTriangle, Shield, TrendingUp, Info, ChevronDown, ChevronUp, ExternalLink } from "lucide-react"
-import { RiskScoringService } from "@/lib/risk-scoring-service"
-import { fetchWalletOverview } from "@/lib/api"
-import { getTransactionFlowData } from "@/lib/solana"
+import { fetchWalletRiskScore } from "@/lib/api"
 import type { RiskScore, RiskFactor } from "@/types/risk"
 
 interface WalletRiskScoreProps {
@@ -27,64 +25,12 @@ export function WalletRiskScore({ walletAddress }: WalletRiskScoreProps) {
       setLoading(true)
       setError(null)
       try {
-        // Get wallet data and transaction flow data
-        const walletData = await fetchWalletOverview(walletAddress)
-        const flowData = await getTransactionFlowData(walletAddress)
-
-        // Calculate risk score
-        const score = RiskScoringService.calculateWalletRiskScore(walletAddress, walletData, flowData)
-
+        // Fetch real risk score data
+        const score = await fetchWalletRiskScore(walletAddress)
         setRiskScore(score)
       } catch (error) {
         console.error("Failed to load risk score:", error)
-        setError("Failed to calculate risk score. Using demonstration data.")
-
-        // Mock data for demo purposes
-        setRiskScore({
-          address: walletAddress,
-          score: 65,
-          level: "medium",
-          factors: [
-            {
-              name: "Connection to High-Risk Wallets",
-              description: "Connected to 2 high-risk wallets",
-              impact: 20,
-              score: 60,
-              details: ["wallet4", "wallet7"],
-            },
-            {
-              name: "Unusual Transaction Patterns",
-              description: "Multiple transactions with unusual timing",
-              impact: 15,
-              score: 75,
-            },
-            {
-              name: "Transaction Velocity",
-              description: "High number of transactions in a short time period",
-              impact: 10,
-              score: 50,
-            },
-            {
-              name: "Circular Transactions",
-              description: "1 circular transaction pattern detected",
-              impact: 10,
-              score: 40,
-            },
-            {
-              name: "Unusual Amounts",
-              description: "3 transactions with unusual amounts",
-              impact: 5,
-              score: 30,
-            },
-            {
-              name: "New Wallet",
-              description: "Recently created wallet with high activity",
-              impact: 5,
-              score: 25,
-            },
-          ],
-          timestamp: new Date().toISOString(),
-        })
+        setError("Failed to calculate risk score. Please try again later.")
       } finally {
         setLoading(false)
       }

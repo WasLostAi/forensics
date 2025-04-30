@@ -1,6 +1,7 @@
 import type { TransactionFlowData } from "@/types/transaction"
 import type { WalletData } from "@/types/wallet"
 import type { RiskScore, RiskFactor, TransactionRiskScore } from "@/types/risk"
+import { fetchEntityLabels } from "@/lib/api"
 
 /**
  * Service for calculating risk scores for wallets and transactions
@@ -26,17 +27,35 @@ export class RiskScoringService {
     PRIVACY_TOOL: 15,
   }
 
+  // Known high-risk entity types
+  private static HIGH_RISK_ENTITY_TYPES = [
+    "mixer",
+    "darknet_market",
+    "scam",
+    "ransomware",
+    "sanctioned",
+    "high_risk_exchange",
+  ]
+
+  // Known privacy tools
+  private static PRIVACY_TOOLS = ["tornado_cash", "wasabi_wallet", "samourai_wallet", "coinjoin", "solana_mixer"]
+
   /**
    * Calculate a comprehensive risk score for a wallet
    */
-  public static calculateWalletRiskScore(
+  public static async calculateWalletRiskScore(
     walletAddress: string,
     walletData: WalletData,
     flowData: TransactionFlowData,
-  ): RiskScore {
+  ): Promise<RiskScore> {
     // Initialize score and factors
     let totalScore = 0
     const factors: RiskFactor[] = []
+
+    // Fetch entity labels for connected wallets
+    const connectedAddresses = this.getConnectedAddresses(walletAddress, flowData)
+    const entityLabels = await fetchEntityLabels(walletAddress)
+    const connectedEntityLabels = await this.fetchConnectedEntityLabels(connectedAddresses)
 
     // 1. Transaction velocity (high number of transactions in short time)
     const txVelocity = this.calculateTransactionVelocity(walletData)
@@ -52,7 +71,7 @@ export class RiskScoringService {
     }
 
     // 2. Connections to high-risk wallets
-    const highRiskConnections = this.identifyHighRiskConnections(walletAddress, flowData)
+    const highRiskConnections = this.identifyHighRiskConnections(connectedEntityLabels)
     if (highRiskConnections.count > 0) {
       const connectionImpact = Math.min(this.RISK_WEIGHTS.HIGH_RISK_CONNECTIONS, highRiskConnections.count * 5)
       totalScore += connectionImpact
@@ -66,7 +85,7 @@ export class RiskScoringService {
     }
 
     // 3. Connections to mixers or tumblers
-    const mixerConnections = this.identifyMixerConnections(walletAddress, flowData)
+    const mixerConnections = this.identifyMixerConnections(connectedEntityLabels)
     if (mixerConnections.connected) {
       totalScore += this.RISK_WEIGHTS.MIXER_CONNECTIONS
       factors.push({
@@ -153,17 +172,17 @@ export class RiskScoringService {
   /**
    * Calculate risk score for a specific transaction
    */
-  public static calculateTransactionRiskScore(
+  public static async calculateTransactionRiskScore(
     transactionId: string,
     transaction: any,
     flowData: TransactionFlowData,
-  ): TransactionRiskScore {
+  ): Promise<TransactionRiskScore> {
     // Initialize score and factors
     let totalScore = 0
     const factors: RiskFactor[] = []
 
     // Find the transaction in the flow data
-    const tx = flowData.links.find((link) => link.id === transactionId)
+    const tx = flowData.links.find((link) => link.id === transactionId || link.source + link.target === transactionId)
     if (!tx) {
       return {
         id: transactionId,
@@ -173,6 +192,10 @@ export class RiskScoringService {
         timestamp: new Date().toISOString(),
       }
     }
+
+    // Fetch entity labels for source and target
+    const sourceEntityLabels = await fetchEntityLabels(tx.source)
+    const targetEntityLabels = await fetchEntityLabels(tx.target)
 
     // 1. Large transaction amount
     const largeAmount = this.assessLargeAmount(tx.value)
@@ -212,7 +235,7 @@ export class RiskScoringService {
     }
 
     // 4. Part of known pattern
-    const knownPattern = this.assessKnownPattern(transactionId, flowData)
+    const knownPattern = await this.assessKnownPattern(transactionId, flowData)
     if (knownPattern.found) {
       totalScore += this.RISK_WEIGHTS.KNOWN_PATTERN
       factors.push({
@@ -237,7 +260,7 @@ export class RiskScoringService {
     }
 
     // 6. Privacy tool usage
-    const privacyTool = this.assessPrivacyToolUsage(tx.source, tx.target)
+    const privacyTool = this.assessPrivacyToolUsage(sourceEntityLabels, targetEntityLabels)
     if (privacyTool.used) {
       totalScore += this.RISK_WEIGHTS.PRIVACY_TOOL
       factors.push({
@@ -269,6 +292,44 @@ export class RiskScoringService {
   }
 
   /**
+   * Get all addresses connected to the wallet
+   */
+  private static getConnectedAddresses(walletAddress: string, flowData: TransactionFlowData): string[] {
+    const connectedAddresses = new Set<string>()
+
+    flowData.links.forEach((link) => {
+      if (link.source === walletAddress) {
+        connectedAddresses.add(link.target)
+      } else if (link.target === walletAddress) {
+        connectedAddresses.add(link.source)
+      }
+    })
+
+    return Array.from(connectedAddresses)
+  }
+
+  /**
+   * Fetch entity labels for connected wallets
+   */
+  private static async fetchConnectedEntityLabels(addresses: string[]): Promise<Record<string, any[]>> {
+    const entityLabels: Record<string, any[]> = {}
+
+    // Fetch entity labels in batches to avoid too many concurrent requests
+    const batchSize = 10
+    for (let i = 0; i < addresses.length; i += batchSize) {
+      const batch = addresses.slice(i, i + batchSize)
+      const promises = batch.map((address) => fetchEntityLabels(address))
+      const results = await Promise.all(promises)
+
+      batch.forEach((address, index) => {
+        entityLabels[address] = results[index]
+      })
+    }
+
+    return entityLabels
+  }
+
+  /**
    * Calculate transaction velocity score
    */
   private static calculateTransactionVelocity(walletData: WalletData): number {
@@ -292,68 +353,53 @@ export class RiskScoringService {
   /**
    * Identify connections to high-risk wallets
    */
-  private static identifyHighRiskConnections(
-    walletAddress: string,
-    flowData: TransactionFlowData,
-  ): { count: number; addresses: string[] } {
-    // In a real implementation, this would check against a database of known high-risk wallets
-    // For demo purposes, we'll use a mock implementation
+  private static identifyHighRiskConnections(connectedEntityLabels: Record<string, any[]>): {
+    count: number
+    addresses: string[]
+  } {
+    const highRiskAddresses: string[] = []
 
-    // Mock high-risk wallets (in a real implementation, these would come from a database)
-    const mockHighRiskWallets = [
-      "wallet4", // From the mock data
-      "wallet7",
-      "wallet9",
-    ]
+    // Check each connected address for high-risk labels
+    Object.entries(connectedEntityLabels).forEach(([address, labels]) => {
+      const isHighRisk = labels.some((label) => this.HIGH_RISK_ENTITY_TYPES.includes(label.type?.toLowerCase()))
 
-    // Find connections to high-risk wallets
-    const connections = flowData.links
-      .filter(
-        (link) =>
-          (link.source === walletAddress && mockHighRiskWallets.includes(link.target)) ||
-          (link.target === walletAddress && mockHighRiskWallets.includes(link.source)),
-      )
-      .map((link) => (link.source === walletAddress ? link.target : link.source))
-
-    // Remove duplicates
-    const uniqueConnections = [...new Set(connections)]
+      if (isHighRisk) {
+        highRiskAddresses.push(address)
+      }
+    })
 
     return {
-      count: uniqueConnections.length,
-      addresses: uniqueConnections,
+      count: highRiskAddresses.length,
+      addresses: highRiskAddresses,
     }
   }
 
   /**
    * Identify connections to mixers or tumblers
    */
-  private static identifyMixerConnections(
-    walletAddress: string,
-    flowData: TransactionFlowData,
-  ): { connected: boolean; addresses: string[] } {
-    // In a real implementation, this would check against a database of known mixer services
-    // For demo purposes, we'll use a mock implementation
+  private static identifyMixerConnections(connectedEntityLabels: Record<string, any[]>): {
+    connected: boolean
+    addresses: string[]
+  } {
+    const mixerAddresses: string[] = []
 
-    // Mock mixer wallets (in a real implementation, these would come from a database)
-    const mockMixerWallets = [
-      "wallet4", // From the mock data
-    ]
-
-    // Find connections to mixer wallets
-    const connections = flowData.links
-      .filter(
-        (link) =>
-          (link.source === walletAddress && mockMixerWallets.includes(link.target)) ||
-          (link.target === walletAddress && mockMixerWallets.includes(link.source)),
+    // Check each connected address for mixer labels
+    Object.entries(connectedEntityLabels).forEach(([address, labels]) => {
+      const isMixer = labels.some(
+        (label) =>
+          label.type?.toLowerCase() === "mixer" ||
+          label.name?.toLowerCase().includes("mixer") ||
+          label.name?.toLowerCase().includes("tumbler"),
       )
-      .map((link) => (link.source === walletAddress ? link.target : link.source))
 
-    // Remove duplicates
-    const uniqueConnections = [...new Set(connections)]
+      if (isMixer) {
+        mixerAddresses.push(address)
+      }
+    })
 
     return {
-      connected: uniqueConnections.length > 0,
-      addresses: uniqueConnections,
+      connected: mixerAddresses.length > 0,
+      addresses: mixerAddresses,
     }
   }
 
@@ -364,15 +410,56 @@ export class RiskScoringService {
     walletAddress: string,
     flowData: TransactionFlowData,
   ): { found: boolean; count: number } {
-    // In a real implementation, this would use graph analysis to find cycles
-    // For demo purposes, we'll use a mock implementation
+    // Build a directed graph from the flow data
+    const graph: Record<string, string[]> = {}
 
-    // For the demo, assume we found 1 circular pattern if there are enough transactions
-    const hasEnoughTransactions = flowData.links.length >= 4
+    flowData.links.forEach((link) => {
+      if (!graph[link.source]) {
+        graph[link.source] = []
+      }
+      graph[link.source].push(link.target)
+    })
+
+    // Use DFS to find cycles that include the wallet address
+    const visited = new Set<string>()
+    const recursionStack = new Set<string>()
+    let cycleCount = 0
+
+    function dfs(node: string, path: string[] = []): void {
+      visited.add(node)
+      recursionStack.add(node)
+      path.push(node)
+
+      // Check neighbors
+      const neighbors = graph[node] || []
+      for (const neighbor of neighbors) {
+        // Found a cycle back to the wallet address
+        if (neighbor === walletAddress && path.length > 2) {
+          cycleCount++
+          continue
+        }
+
+        // Continue DFS if not visited
+        if (!visited.has(neighbor)) {
+          dfs(neighbor, [...path])
+        }
+        // Found a cycle
+        else if (recursionStack.has(neighbor)) {
+          cycleCount++
+        }
+      }
+
+      recursionStack.delete(node)
+    }
+
+    // Start DFS from the wallet address
+    if (graph[walletAddress]) {
+      dfs(walletAddress)
+    }
 
     return {
-      found: hasEnoughTransactions,
-      count: hasEnoughTransactions ? 1 : 0,
+      found: cycleCount > 0,
+      count: cycleCount,
     }
   }
 
@@ -383,19 +470,20 @@ export class RiskScoringService {
     walletAddress: string,
     flowData: TransactionFlowData,
   ): { found: boolean; count: number } {
-    // In a real implementation, this would analyze the distribution of transaction amounts
-    // For demo purposes, we'll use a mock implementation
+    // Get all transaction amounts
+    const amounts = flowData.links.map((link) => link.value)
 
-    // Count transactions with unusual amounts (e.g., very large or very precise amounts)
+    // Calculate statistics
+    const sum = amounts.reduce((a, b) => a + b, 0)
+    const mean = sum / amounts.length
+    const squaredDiffs = amounts.map((value) => Math.pow(value - mean, 2))
+    const variance = squaredDiffs.reduce((a, b) => a + b, 0) / amounts.length
+    const stdDev = Math.sqrt(variance)
+
+    // Identify unusual amounts (more than 2 standard deviations from the mean)
     const unusualAmounts = flowData.links.filter((link) => {
-      // Very large amounts (> 100 SOL)
-      if (link.value > 100) return true
-
-      // Very precise amounts (more than 4 decimal places)
-      const decimalPlaces = (link.value.toString().split(".")[1] || "").length
-      if (decimalPlaces > 4) return true
-
-      return false
+      const zScore = Math.abs(link.value - mean) / stdDev
+      return zScore > 2
     })
 
     return {
@@ -411,9 +499,6 @@ export class RiskScoringService {
     walletAddress: string,
     flowData: TransactionFlowData,
   ): { found: boolean; count: number } {
-    // In a real implementation, this would analyze the timing of transactions
-    // For demo purposes, we'll use a mock implementation
-
     // Count transactions at unusual hours (e.g., 1am-5am)
     const unusualTiming = flowData.links.filter((link) => {
       if (!link.timestamp) return false
@@ -484,25 +569,99 @@ export class RiskScoringService {
     const decimalPlaces = (amount.toString().split(".")[1] || "").length
     if (decimalPlaces === 1) return true
 
+    // Check if amount ends with multiple zeros
+    const amountStr = amount.toString()
+    if (amountStr.endsWith("00") || amountStr.endsWith("000")) return true
+
     return false
   }
 
   /**
    * Assess if a transaction is part of a known suspicious pattern
    */
-  private static assessKnownPattern(
+  private static async assessKnownPattern(
     transactionId: string,
     flowData: TransactionFlowData,
-  ): { found: boolean; patternType: string } {
-    // In a real implementation, this would check against known patterns
-    // For demo purposes, we'll use a mock implementation
+  ): Promise<{ found: boolean; patternType: string }> {
+    // Define known suspicious patterns
+    const patterns = [
+      {
+        name: "Layering",
+        detect: (flowData: TransactionFlowData) => {
+          // Look for chains of 3+ transactions in quick succession
+          // This is a simplified implementation
+          const txTimestamps = flowData.links
+            .filter((link) => link.timestamp)
+            .map((link) => new Date(link.timestamp).getTime())
+            .sort()
 
-    // For the demo, assume 20% of transactions are part of a known pattern
-    const isSuspicious = transactionId.charCodeAt(0) % 5 === 0
+          // Check for 3+ transactions within 10 minutes
+          for (let i = 0; i < txTimestamps.length - 2; i++) {
+            if (txTimestamps[i + 2] - txTimestamps[i] < 10 * 60 * 1000) {
+              return true
+            }
+          }
+
+          return false
+        },
+      },
+      {
+        name: "Smurfing",
+        detect: (flowData: TransactionFlowData) => {
+          // Look for multiple small transactions that add up to a large amount
+          // This is a simplified implementation
+          const smallTxs = flowData.links.filter((link) => link.value < 10)
+          if (smallTxs.length < 3) return false
+
+          const totalValue = smallTxs.reduce((sum, tx) => sum + tx.value, 0)
+          return totalValue > 100
+        },
+      },
+      {
+        name: "Round-trip",
+        detect: (flowData: TransactionFlowData) => {
+          // Look for funds that go out and come back to the same wallet
+          // This is a simplified implementation
+          const addresses = new Set<string>()
+          flowData.links.forEach((link) => {
+            addresses.add(link.source)
+            addresses.add(link.target)
+          })
+
+          for (const address of addresses) {
+            const outgoing = flowData.links.filter((link) => link.source === address)
+            const incoming = flowData.links.filter((link) => link.target === address)
+
+            if (outgoing.length > 0 && incoming.length > 0) {
+              // Check if any outgoing transaction is followed by an incoming one
+              for (const out of outgoing) {
+                for (const inc of incoming) {
+                  if (new Date(inc.timestamp) > new Date(out.timestamp)) {
+                    return true
+                  }
+                }
+              }
+            }
+          }
+
+          return false
+        },
+      },
+    ]
+
+    // Check each pattern
+    for (const pattern of patterns) {
+      if (pattern.detect(flowData)) {
+        return {
+          found: true,
+          patternType: pattern.name,
+        }
+      }
+    }
 
     return {
-      found: isSuspicious,
-      patternType: isSuspicious ? "Layering" : "",
+      found: false,
+      patternType: "",
     }
   }
 
@@ -513,35 +672,83 @@ export class RiskScoringService {
     transactionId: string,
     flowData: TransactionFlowData,
   ): { isMultiHop: boolean; hopCount: number } {
-    // In a real implementation, this would trace the transaction chain
-    // For demo purposes, we'll use a mock implementation
+    // Build a directed graph from the flow data
+    const graph: Record<string, string[]> = {}
 
-    // For the demo, assume 30% of transactions are part of a multi-hop chain
-    const isMultiHop = transactionId.charCodeAt(0) % 3 === 0
+    flowData.links.forEach((link) => {
+      if (!graph[link.source]) {
+        graph[link.source] = []
+      }
+      graph[link.source].push(link.target)
+    })
+
+    // Find the transaction
+    const tx = flowData.links.find((link) => link.id === transactionId || link.source + link.target === transactionId)
+    if (!tx) {
+      return { isMultiHop: false, hopCount: 0 }
+    }
+
+    // Use BFS to find the longest path from source
+    const visited = new Set<string>()
+    const queue: { node: string; distance: number }[] = [{ node: tx.source, distance: 0 }]
+    let maxDistance = 0
+
+    while (queue.length > 0) {
+      const { node, distance } = queue.shift()!
+
+      if (visited.has(node)) continue
+      visited.add(node)
+
+      maxDistance = Math.max(maxDistance, distance)
+
+      const neighbors = graph[node] || []
+      for (const neighbor of neighbors) {
+        if (!visited.has(neighbor)) {
+          queue.push({ node: neighbor, distance: distance + 1 })
+        }
+      }
+    }
 
     return {
-      isMultiHop,
-      hopCount: isMultiHop ? 3 : 0,
+      isMultiHop: maxDistance > 1,
+      hopCount: maxDistance,
     }
   }
 
   /**
    * Assess if a transaction involves a privacy tool
    */
-  private static assessPrivacyToolUsage(source: string, target: string): { used: boolean; toolName: string } {
-    // In a real implementation, this would check against known privacy tools
-    // For demo purposes, we'll use a mock implementation
+  private static assessPrivacyToolUsage(sourceLabels: any[], targetLabels: any[]): { used: boolean; toolName: string } {
+    // Check if source or target has a privacy tool label
+    const sourcePrivacyTool = sourceLabels.find((label) =>
+      this.PRIVACY_TOOLS.some(
+        (tool) => label.name?.toLowerCase().includes(tool) || label.type?.toLowerCase().includes(tool),
+      ),
+    )
 
-    // Mock privacy tool wallets (in a real implementation, these would come from a database)
-    const mockPrivacyTools = [
-      "wallet4", // From the mock data
-    ]
+    const targetPrivacyTool = targetLabels.find((label) =>
+      this.PRIVACY_TOOLS.some(
+        (tool) => label.name?.toLowerCase().includes(tool) || label.type?.toLowerCase().includes(tool),
+      ),
+    )
 
-    const usesPrivacyTool = mockPrivacyTools.includes(source) || mockPrivacyTools.includes(target)
+    if (sourcePrivacyTool) {
+      return {
+        used: true,
+        toolName: sourcePrivacyTool.name || "Privacy Tool",
+      }
+    }
+
+    if (targetPrivacyTool) {
+      return {
+        used: true,
+        toolName: targetPrivacyTool.name || "Privacy Tool",
+      }
+    }
 
     return {
-      used: usesPrivacyTool,
-      toolName: usesPrivacyTool ? "Solana Mixer" : "",
+      used: false,
+      toolName: "",
     }
   }
 }
