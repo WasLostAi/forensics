@@ -6,8 +6,6 @@ import { TransactionClustersView } from "@/components/transaction-clusters-view"
 import { WalletRiskScore } from "@/components/wallet-risk-score"
 import { TransactionRiskAnalysis } from "@/components/transaction-risk-analysis"
 import { RiskMetricsDashboard } from "@/components/risk-metrics-dashboard"
-// Add the import for the new component
-import { WalletAdvancedRisk } from "@/components/wallet-advanced-risk"
 
 interface WalletPageProps {
   params: {
@@ -18,8 +16,6 @@ interface WalletPageProps {
 export default function WalletPage({ params }: WalletPageProps) {
   const { address } = params
 
-  // Find the return statement and add the WalletAdvancedRisk component after the WalletRiskScore component
-  // It should look something like this:
   return (
     <div className="container py-6 space-y-6">
       <h1 className="text-2xl font-bold">Wallet Analysis</h1>
@@ -33,9 +29,6 @@ export default function WalletPage({ params }: WalletPageProps) {
           <WalletRiskScore walletAddress={address} />
         </div>
       </div>
-
-      {/* Add the new component here */}
-      <WalletAdvancedRisk walletAddress={address} />
 
       <Tabs defaultValue="flow">
         <TabsList>

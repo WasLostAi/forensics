@@ -60,10 +60,10 @@
     "zod": "^3.24.1",
     "jspdf": "latest",
     "html2canvas": "latest",
-    "d3": "latest",
-    "reactflow": "latest",
     "@solana/web3.js": "latest",
-    "@supabase/supabase-js": "latest"
+    "@supabase/supabase-js": "latest",
+    "webpack": "latest",
+    "reactflow": "latest"
   },
   "devDependencies": {
     "@types/node": "^22",

@@ -1,17 +1,10 @@
-import { createClient } from "@/lib/supabase"
-import type { RiskScore, RiskFactor, RiskLevel, TransactionRiskScore } from "@/types/risk"
-import type { Transaction, TransactionFlowData } from "@/types/transaction"
+import type { TransactionFlowData } from "@/types/transaction"
+import type { WalletData } from "@/types/wallet"
+import type { RiskScore, RiskFactor, TransactionRiskScore } from "@/types/risk"
 
-// Define risk types if they don't exist
-// Fix: Use a safer approach to handle global variables
-const RiskTypes = {
-  LOW: "low",
-  MEDIUM: "medium",
-  HIGH: "high",
-  UNKNOWN: "unknown",
-}
-
-// RiskScoringService class
+/**
+ * Service for calculating risk scores for wallets and transactions
+ */
 export class RiskScoringService {
   // Risk factor weights (out of 100)
   private static RISK_WEIGHTS = {
@@ -37,166 +30,132 @@ export class RiskScoringService {
    * Calculate a comprehensive risk score for a wallet
    */
   public static calculateWalletRiskScore(
-    address: string,
-    transactions: Transaction[],
-    knownEntities: Map<string, { category: string; riskLevel: string }> = new Map(),
+    walletAddress: string,
+    walletData: WalletData,
+    flowData: TransactionFlowData,
   ): RiskScore {
-    // Initialize risk factors
-    const riskFactors: RiskFactor[] = []
+    // Initialize score and factors
+    let totalScore = 0
+    const factors: RiskFactor[] = []
 
-    // Base metrics
-    const metrics = {
-      totalTransactions: transactions.length,
-      totalVolume: 0,
-      avgTransactionSize: 0,
-      mixerInteractions: 0,
-      exchangeInteractions: 0,
-      unknownInteractions: 0,
-      highRiskInteractions: 0,
-      age: 0,
-      velocityScore: 0,
-      patternScore: 0,
-      clusterScore: 0,
-    }
-
-    // Skip calculation if no transactions
-    if (transactions.length === 0) {
-      return {
-        address,
-        score: 0,
-        factors: [],
-        level: "unknown",
-        lastUpdated: new Date(),
-      }
-    }
-
-    // Calculate total volume and identify transaction patterns
-    let totalVolume = 0
-    let mixerInteractions = 0
-    let exchangeInteractions = 0
-    let unknownInteractions = 0
-    let highRiskInteractions = 0
-
-    // Sort transactions by timestamp
-    const sortedTransactions = [...transactions].sort(
-      (a, b) => new Date(a.timestamp || 0).getTime() - new Date(b.timestamp || 0).getTime(),
-    )
-
-    // Calculate age of wallet (days since first transaction)
-    const firstTxDate = new Date(sortedTransactions[0].timestamp || 0)
-    const now = new Date()
-    const ageInDays = Math.floor((now.getTime() - firstTxDate.getTime()) / (1000 * 60 * 60 * 24))
-    metrics.age = ageInDays
-
-    // Analyze transactions
-    for (const tx of transactions) {
-      // Add to total volume
-      totalVolume += tx.amount || 0
-
-      // Check counterparties
-      const counterparty = tx.from === address ? tx.to : tx.from
-
-      // Check if counterparty is a known entity
-      if (counterparty && knownEntities.has(counterparty)) {
-        const entity = knownEntities.get(counterparty)!
-
-        // Count interactions by category
-        if (entity.category === "mixer") {
-          mixerInteractions++
-          riskFactors.push({
-            name: "mixer_interaction",
-            description: `Interaction with known mixer: ${counterparty}`,
-            impact: 25,
-          })
-        } else if (entity.category === "exchange") {
-          exchangeInteractions++
-        }
-
-        // Count high risk interactions
-        if (entity.riskLevel === "high") {
-          highRiskInteractions++
-          riskFactors.push({
-            name: "high_risk_entity",
-            description: `Interaction with high-risk entity: ${counterparty}`,
-            impact: 20,
-          })
-        }
-      } else {
-        // Unknown counterparty
-        unknownInteractions++
-      }
-
-      // Check for large transactions
-      if (tx.amount && tx.amount > 1000000) {
-        // $1M threshold
-        riskFactors.push({
-          name: "large_transaction",
-          description: `Large transaction of $${tx.amount.toLocaleString()}`,
-          impact: 15,
-        })
-      }
-    }
-
-    // Update metrics
-    metrics.totalVolume = totalVolume
-    metrics.avgTransactionSize = transactions.length > 0 ? totalVolume / transactions.length : 0
-    metrics.mixerInteractions = mixerInteractions
-    metrics.exchangeInteractions = exchangeInteractions
-    metrics.unknownInteractions = unknownInteractions
-    metrics.highRiskInteractions = highRiskInteractions
-
-    // Calculate velocity score (transaction frequency)
-    if (ageInDays > 0) {
-      const txPerDay = transactions.length / ageInDays
-      metrics.velocityScore = Math.min(txPerDay * 10, 100) // Scale 0-100
-    }
-
-    // Calculate pattern score (based on transaction patterns)
-    // This is a simplified version - in a real system this would be more sophisticated
-    const patternScore = mixerInteractions * 30 + highRiskInteractions * 20 + unknownInteractions * 5
-    metrics.patternScore = Math.min(patternScore, 100) // Scale 0-100
-
-    // Calculate cluster score (based on relationship to known entities)
-    // This is a simplified version - in a real system this would use graph analysis
-    const clusterScore = mixerInteractions * 25 + highRiskInteractions * 15 + exchangeInteractions * 5
-    metrics.clusterScore = Math.min(clusterScore, 100) // Scale 0-100
-
-    // Calculate overall risk score (weighted average of component scores)
-    const overallScore = metrics.velocityScore * 0.2 + metrics.patternScore * 0.4 + metrics.clusterScore * 0.4
-
-    // Determine risk level
-    let riskLevel: RiskLevel = "low"
-    if (overallScore >= 75) {
-      riskLevel = "high"
-    } else if (overallScore >= 40) {
-      riskLevel = "medium"
-    }
-
-    // Add age-based risk factor
-    if (ageInDays < 7) {
-      riskFactors.push({
-        name: "new_wallet",
-        description: `New wallet (${ageInDays} days old)`,
-        impact: 5,
+    // 1. Transaction velocity (high number of transactions in short time)
+    const txVelocity = this.calculateTransactionVelocity(walletData)
+    if (txVelocity > 0) {
+      const velocityImpact = Math.min(this.RISK_WEIGHTS.TRANSACTION_VELOCITY, txVelocity)
+      totalScore += velocityImpact
+      factors.push({
+        name: "Transaction Velocity",
+        description: "High number of transactions in a short time period",
+        impact: velocityImpact,
+        score: txVelocity,
       })
     }
 
-    // Return the complete risk score
+    // 2. Connections to high-risk wallets
+    const highRiskConnections = this.identifyHighRiskConnections(walletAddress, flowData)
+    if (highRiskConnections.count > 0) {
+      const connectionImpact = Math.min(this.RISK_WEIGHTS.HIGH_RISK_CONNECTIONS, highRiskConnections.count * 5)
+      totalScore += connectionImpact
+      factors.push({
+        name: "High-Risk Connections",
+        description: `Connected to ${highRiskConnections.count} high-risk wallets`,
+        impact: connectionImpact,
+        score: highRiskConnections.count * 5,
+        details: highRiskConnections.addresses,
+      })
+    }
+
+    // 3. Connections to mixers or tumblers
+    const mixerConnections = this.identifyMixerConnections(walletAddress, flowData)
+    if (mixerConnections.connected) {
+      totalScore += this.RISK_WEIGHTS.MIXER_CONNECTIONS
+      factors.push({
+        name: "Mixer Connections",
+        description: "Connected to known mixer or tumbler services",
+        impact: this.RISK_WEIGHTS.MIXER_CONNECTIONS,
+        score: 100,
+        details: mixerConnections.addresses,
+      })
+    }
+
+    // 4. Circular transaction patterns
+    const circularPatterns = this.identifyCircularPatterns(walletAddress, flowData)
+    if (circularPatterns.found) {
+      const patternImpact = Math.min(this.RISK_WEIGHTS.CIRCULAR_PATTERNS, circularPatterns.count * 5)
+      totalScore += patternImpact
+      factors.push({
+        name: "Circular Transactions",
+        description: `${circularPatterns.count} circular transaction patterns detected`,
+        impact: patternImpact,
+        score: circularPatterns.count * 20,
+      })
+    }
+
+    // 5. Unusual transaction amounts
+    const unusualAmounts = this.identifyUnusualAmounts(walletAddress, flowData)
+    if (unusualAmounts.found) {
+      const amountImpact = Math.min(this.RISK_WEIGHTS.UNUSUAL_AMOUNTS, unusualAmounts.count * 2)
+      totalScore += amountImpact
+      factors.push({
+        name: "Unusual Amounts",
+        description: `${unusualAmounts.count} transactions with unusual amounts`,
+        impact: amountImpact,
+        score: unusualAmounts.count * 10,
+      })
+    }
+
+    // 6. Unusual transaction timing
+    const unusualTiming = this.identifyUnusualTiming(walletAddress, flowData)
+    if (unusualTiming.found) {
+      const timingImpact = Math.min(this.RISK_WEIGHTS.UNUSUAL_TIMING, unusualTiming.count * 2)
+      totalScore += timingImpact
+      factors.push({
+        name: "Unusual Timing",
+        description: `${unusualTiming.count} transactions at unusual hours`,
+        impact: timingImpact,
+        score: unusualTiming.count * 10,
+      })
+    }
+
+    // 7. New wallet with high activity
+    const newWalletRisk = this.assessNewWalletRisk(walletData)
+    if (newWalletRisk > 0) {
+      const newWalletImpact = Math.min(this.RISK_WEIGHTS.NEW_WALLET, newWalletRisk)
+      totalScore += newWalletImpact
+      factors.push({
+        name: "New Wallet",
+        description: "Recently created wallet with high activity",
+        impact: newWalletImpact,
+        score: newWalletRisk,
+      })
+    }
+
+    // Sort factors by impact (highest first)
+    factors.sort((a, b) => b.impact - a.impact)
+
+    // Determine risk level
+    let riskLevel: "low" | "medium" | "high" = "low"
+    if (totalScore >= 70) {
+      riskLevel = "high"
+    } else if (totalScore >= 40) {
+      riskLevel = "medium"
+    }
+
     return {
-      address,
-      score: overallScore,
-      factors: riskFactors,
+      address: walletAddress,
+      score: totalScore,
       level: riskLevel,
-      lastUpdated: new Date(),
+      factors,
+      timestamp: new Date().toISOString(),
     }
   }
 
   /**
    * Calculate risk score for a specific transaction
    */
-  static calculateTransactionRiskScore(
+  public static calculateTransactionRiskScore(
     transactionId: string,
-    transaction: Transaction,
+    transaction: any,
     flowData: TransactionFlowData,
   ): TransactionRiskScore {
     // Initialize score and factors
@@ -204,7 +163,7 @@ export class RiskScoringService {
     const factors: RiskFactor[] = []
 
     // Find the transaction in the flow data
-    const tx = flowData.links.find((link: any) => link.id === transactionId)
+    const tx = flowData.links.find((link) => link.id === transactionId)
     if (!tx) {
       return {
         id: transactionId,
@@ -224,6 +183,7 @@ export class RiskScoringService {
         name: "Large Amount",
         description: `Transaction amount (${tx.value} SOL) is unusually large`,
         impact: amountImpact,
+        score: largeAmount,
       })
     }
 
@@ -235,6 +195,7 @@ export class RiskScoringService {
         name: "Unusual Hour",
         description: "Transaction occurred during unusual hours",
         impact: this.RISK_WEIGHTS.UNUSUAL_HOUR,
+        score: unusualHour,
       })
     }
 
@@ -246,6 +207,7 @@ export class RiskScoringService {
         name: "Round Number",
         description: "Transaction amount is a suspiciously round number",
         impact: this.RISK_WEIGHTS.ROUND_NUMBER,
+        score: 100,
       })
     }
 
@@ -257,6 +219,7 @@ export class RiskScoringService {
         name: "Known Pattern",
         description: `Part of a known suspicious pattern: ${knownPattern.patternType}`,
         impact: this.RISK_WEIGHTS.KNOWN_PATTERN,
+        score: 100,
       })
     }
 
@@ -269,6 +232,7 @@ export class RiskScoringService {
         name: "Multi-Hop Transaction",
         description: `Part of a ${multiHop.hopCount}-hop transaction chain`,
         impact: hopImpact,
+        score: multiHop.hopCount * 10,
       })
     }
 
@@ -280,6 +244,7 @@ export class RiskScoringService {
         name: "Privacy Tool",
         description: `Transaction involves a known privacy tool: ${privacyTool.toolName}`,
         impact: this.RISK_WEIGHTS.PRIVACY_TOOL,
+        score: 100,
       })
     }
 
@@ -301,6 +266,186 @@ export class RiskScoringService {
       factors,
       timestamp: new Date().toISOString(),
     }
+  }
+
+  /**
+   * Calculate transaction velocity score
+   */
+  private static calculateTransactionVelocity(walletData: WalletData): number {
+    // Calculate days since first activity
+    const firstActivity = new Date(walletData.firstActivity)
+    const now = new Date()
+    const daysSinceFirst = Math.max(1, (now.getTime() - firstActivity.getTime()) / (1000 * 60 * 60 * 24))
+
+    // Calculate transactions per day
+    const txPerDay = walletData.transactionCount / daysSinceFirst
+
+    // Score based on transactions per day
+    if (txPerDay > 100) return 100
+    if (txPerDay > 50) return 75
+    if (txPerDay > 20) return 50
+    if (txPerDay > 10) return 25
+    if (txPerDay > 5) return 10
+    return 0
+  }
+
+  /**
+   * Identify connections to high-risk wallets
+   */
+  private static identifyHighRiskConnections(
+    walletAddress: string,
+    flowData: TransactionFlowData,
+  ): { count: number; addresses: string[] } {
+    // In a real implementation, this would check against a database of known high-risk wallets
+    // For demo purposes, we'll use a mock implementation
+
+    // Mock high-risk wallets (in a real implementation, these would come from a database)
+    const mockHighRiskWallets = [
+      "wallet4", // From the mock data
+      "wallet7",
+      "wallet9",
+    ]
+
+    // Find connections to high-risk wallets
+    const connections = flowData.links
+      .filter(
+        (link) =>
+          (link.source === walletAddress && mockHighRiskWallets.includes(link.target)) ||
+          (link.target === walletAddress && mockHighRiskWallets.includes(link.source)),
+      )
+      .map((link) => (link.source === walletAddress ? link.target : link.source))
+
+    // Remove duplicates
+    const uniqueConnections = [...new Set(connections)]
+
+    return {
+      count: uniqueConnections.length,
+      addresses: uniqueConnections,
+    }
+  }
+
+  /**
+   * Identify connections to mixers or tumblers
+   */
+  private static identifyMixerConnections(
+    walletAddress: string,
+    flowData: TransactionFlowData,
+  ): { connected: boolean; addresses: string[] } {
+    // In a real implementation, this would check against a database of known mixer services
+    // For demo purposes, we'll use a mock implementation
+
+    // Mock mixer wallets (in a real implementation, these would come from a database)
+    const mockMixerWallets = [
+      "wallet4", // From the mock data
+    ]
+
+    // Find connections to mixer wallets
+    const connections = flowData.links
+      .filter(
+        (link) =>
+          (link.source === walletAddress && mockMixerWallets.includes(link.target)) ||
+          (link.target === walletAddress && mockMixerWallets.includes(link.source)),
+      )
+      .map((link) => (link.source === walletAddress ? link.target : link.source))
+
+    // Remove duplicates
+    const uniqueConnections = [...new Set(connections)]
+
+    return {
+      connected: uniqueConnections.length > 0,
+      addresses: uniqueConnections,
+    }
+  }
+
+  /**
+   * Identify circular transaction patterns
+   */
+  private static identifyCircularPatterns(
+    walletAddress: string,
+    flowData: TransactionFlowData,
+  ): { found: boolean; count: number } {
+    // In a real implementation, this would use graph analysis to find cycles
+    // For demo purposes, we'll use a mock implementation
+
+    // For the demo, assume we found 1 circular pattern if there are enough transactions
+    const hasEnoughTransactions = flowData.links.length >= 4
+
+    return {
+      found: hasEnoughTransactions,
+      count: hasEnoughTransactions ? 1 : 0,
+    }
+  }
+
+  /**
+   * Identify unusual transaction amounts
+   */
+  private static identifyUnusualAmounts(
+    walletAddress: string,
+    flowData: TransactionFlowData,
+  ): { found: boolean; count: number } {
+    // In a real implementation, this would analyze the distribution of transaction amounts
+    // For demo purposes, we'll use a mock implementation
+
+    // Count transactions with unusual amounts (e.g., very large or very precise amounts)
+    const unusualAmounts = flowData.links.filter((link) => {
+      // Very large amounts (> 100 SOL)
+      if (link.value > 100) return true
+
+      // Very precise amounts (more than 4 decimal places)
+      const decimalPlaces = (link.value.toString().split(".")[1] || "").length
+      if (decimalPlaces > 4) return true
+
+      return false
+    })
+
+    return {
+      found: unusualAmounts.length > 0,
+      count: unusualAmounts.length,
+    }
+  }
+
+  /**
+   * Identify unusual transaction timing
+   */
+  private static identifyUnusualTiming(
+    walletAddress: string,
+    flowData: TransactionFlowData,
+  ): { found: boolean; count: number } {
+    // In a real implementation, this would analyze the timing of transactions
+    // For demo purposes, we'll use a mock implementation
+
+    // Count transactions at unusual hours (e.g., 1am-5am)
+    const unusualTiming = flowData.links.filter((link) => {
+      if (!link.timestamp) return false
+
+      const hour = new Date(link.timestamp).getHours()
+      return hour >= 1 && hour <= 5
+    })
+
+    return {
+      found: unusualTiming.length > 0,
+      count: unusualTiming.length,
+    }
+  }
+
+  /**
+   * Assess risk for new wallets with high activity
+   */
+  private static assessNewWalletRisk(walletData: WalletData): number {
+    // Calculate days since first activity
+    const firstActivity = new Date(walletData.firstActivity)
+    const now = new Date()
+    const daysSinceFirst = (now.getTime() - firstActivity.getTime()) / (1000 * 60 * 60 * 24)
+
+    // New wallet (less than 30 days)
+    if (daysSinceFirst <= 30) {
+      // High activity for a new wallet
+      if (walletData.transactionCount > 50) return 100
+      if (walletData.transactionCount > 20) return 50
+      if (walletData.transactionCount > 10) return 25
+    }
+
+    return 0
   }
 
   /**
@@ -398,100 +543,5 @@ export class RiskScoringService {
       used: usesPrivacyTool,
       toolName: usesPrivacyTool ? "Solana Mixer" : "",
     }
-  }
-}
-
-// Calculate risk score for a wallet address
-export async function calculateWalletRiskScore(address: string): Promise<RiskScore> {
-  try {
-    const supabase = createClient()
-
-    // First check if we have a cached risk score
-    const { data: cachedScore } = await supabase.from("risk_scores").select("*").eq("address", address).single()
-
-    if (cachedScore && Date.now() - new Date(cachedScore.updated_at).getTime() < 24 * 60 * 60 * 1000) {
-      return {
-        address,
-        score: cachedScore.score,
-        factors: JSON.parse(cachedScore.factors),
-        level: cachedScore.level as RiskLevel,
-        lastUpdated: new Date(cachedScore.updated_at),
-      }
-    }
-
-    // Calculate new risk score
-    const riskFactors: RiskFactor[] = []
-    let totalScore = 0
-
-    // Mock risk calculation for testing
-    const mockRiskFactor: RiskFactor = {
-      name: "Mock Risk Factor",
-      description: "This is a mock risk factor for testing",
-      impact: 25,
-    }
-    riskFactors.push(mockRiskFactor)
-    totalScore += mockRiskFactor.impact
-
-    // Determine risk level
-    let riskLevel: RiskLevel = "low"
-    if (totalScore > 50) {
-      riskLevel = "high"
-    } else if (totalScore > 20) {
-      riskLevel = "medium"
-    }
-
-    // Cache the risk score
-    try {
-      await supabase.from("risk_scores").upsert({
-        address,
-        score: totalScore,
-        factors: JSON.stringify(riskFactors),
-        level: riskLevel,
-        updated_at: new Date().toISOString(),
-      })
-    } catch (error) {
-      console.error("Error caching risk score:", error)
-      // Continue even if caching fails
-    }
-
-    return {
-      address,
-      score: totalScore,
-      factors: riskFactors,
-      level: riskLevel,
-      lastUpdated: new Date(),
-    }
-  } catch (error) {
-    console.error("Error calculating risk score:", error)
-    return {
-      address,
-      score: 0,
-      factors: [],
-      level: "unknown",
-      lastUpdated: new Date(),
-    }
-  }
-}
-
-// Calculate risk score for a transaction
-export async function calculateTransactionRiskScore(transaction: Transaction): Promise<number> {
-  try {
-    // Mock implementation for testing
-    let riskScore = 0
-
-    // Check transaction amount
-    if (transaction.amount && transaction.amount > 1000) {
-      riskScore += 15
-    }
-
-    // Check transaction type
-    if (transaction.type === "unknown") {
-      riskScore += 10
-    }
-
-    return riskScore
-  } catch (error) {
-    console.error("Error calculating transaction risk score:", error)
-    return 0
   }
 }

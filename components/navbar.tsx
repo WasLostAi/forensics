@@ -3,17 +3,7 @@
 import Link from "next/link"
 import { ModeToggle } from "@/components/mode-toggle"
 import { Button } from "@/components/ui/button"
-import { Network, Github, Home, Wallet, FileText, Bell, Shield, AlertTriangle } from "lucide-react"
-
-const navItems = [
-  { name: "Home", href: "/", icon: Home },
-  { name: "Wallet Analysis", href: "/wallet", icon: Wallet },
-  { name: "Transactions", href: "/transactions", icon: FileText },
-  { name: "Investigations", href: "/investigations", icon: Network },
-  { name: "Monitoring", href: "/monitoring", icon: Bell },
-  { name: "Advanced Monitoring", href: "/advanced-monitoring", icon: AlertTriangle },
-  { name: "Entities", href: "/entities", icon: Shield },
-]
+import { Search, BarChart2, Network, Tag, Github, Bookmark } from "lucide-react"
 
 export function Navbar() {
   return (
@@ -25,12 +15,22 @@ export function Navbar() {
         </Link>
 
         <nav className="hidden md:flex items-center gap-6">
-          {navItems.map((item) => (
-            <Link key={item.name} href={item.href} className="flex items-center gap-2 text-sm font-medium">
-              <item.icon className="h-4 w-4" />
-              <span>{item.name}</span>
-            </Link>
-          ))}
+          <Link href="/" className="flex items-center gap-2 text-sm font-medium">
+            <Search className="h-4 w-4" />
+            <span>Search</span>
+          </Link>
+          <Link href="/transactions" className="flex items-center gap-2 text-sm font-medium">
+            <BarChart2 className="h-4 w-4" />
+            <span>Transactions</span>
+          </Link>
+          <Link href="/entities" className="flex items-center gap-2 text-sm font-medium">
+            <Tag className="h-4 w-4" />
+            <span>Entities</span>
+          </Link>
+          <Link href="/investigations" className="flex items-center gap-2 text-sm font-medium">
+            <Bookmark className="h-4 w-4" />
+            <span>Investigations</span>
+          </Link>
         </nav>
 
         <div className="flex items-center gap-4">

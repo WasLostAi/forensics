@@ -1,53 +1,45 @@
-// Risk level type
-export type RiskLevel = "low" | "medium" | "high" | "unknown"
-
-// Risk factor interface
+/**
+ * Represents a risk factor contributing to a risk score
+ */
 export interface RiskFactor {
   name: string
   description: string
-  impact: number
-  details?: any
+  impact: number // How much this factor contributes to the overall score (0-100)
+  score: number // The raw score for this factor (0-100)
+  details?: string[] // Optional additional details
 }
 
-// Risk score interface
+/**
+ * Represents a comprehensive risk score for a wallet
+ */
 export interface RiskScore {
   address: string
-  score: number
-  factors: RiskFactor[]
-  level: RiskLevel
-  lastUpdated: Date
-}
-
-// Risk metrics interface
-export interface RiskMetrics {
-  totalTransactions: number
-  totalVolume: number
-  avgTransactionSize: number
-  mixerInteractions: number
-  exchangeInteractions: number
-  unknownInteractions: number
-  highRiskInteractions: number
-  age: number
-  velocityScore: number
-  patternScore: number
-  clusterScore: number
-}
-
-// Wallet risk score interface
-export interface WalletRiskScore {
-  address: string
-  overallScore: number
-  riskLevel: "low" | "medium" | "high" | "unknown"
-  riskFactors: any[]
-  metrics: RiskMetrics
-  timestamp: string
-}
-
-// Transaction risk score interface
-export interface TransactionRiskScore {
-  id: string
-  score: number
+  score: number // Overall risk score (0-100)
   level: "low" | "medium" | "high"
   factors: RiskFactor[]
   timestamp: string
+}
+
+/**
+ * Represents a risk score for a transaction
+ */
+export interface TransactionRiskScore {
+  id: string
+  score: number // Overall risk score (0-100)
+  level: "low" | "medium" | "high"
+  factors: RiskFactor[]
+  timestamp: string
+}
+
+/**
+ * Represents a risk trend over time
+ */
+export interface RiskTrend {
+  address: string
+  periods: {
+    timestamp: string
+    score: number
+  }[]
+  trend: "increasing" | "decreasing" | "stable"
+  percentChange: number
 }

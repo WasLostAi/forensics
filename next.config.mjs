@@ -1,6 +1,7 @@
-/**
- * @type {import('next').NextConfig}
- */
+// Import webpack directly
+import webpack from 'webpack';
+
+/** @type {import('next').NextConfig} */
 const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
@@ -12,8 +13,7 @@ const nextConfig = {
     unoptimized: true,
   },
   // Webpack configuration to handle Solana dependencies
-  webpack: (config, { isServer, webpack }) => {
-    // Polyfill for Node.js core modules
+  webpack: (config, { isServer }) => {
     if (!isServer) {
       config.resolve.fallback = {
         ...config.resolve.fallback,
@@ -31,21 +31,13 @@ const nextConfig = {
         child_process: false,
       };
       
-      // Add buffer polyfill
+      // Add buffer polyfill using the imported webpack
       config.plugins.push(
         new webpack.ProvidePlugin({
           Buffer: ['buffer', 'Buffer'],
         })
       );
-      
-      // Add process polyfill
-      config.plugins.push(
-        new webpack.ProvidePlugin({
-          process: 'process/browser',
-        })
-      );
     }
-    
     return config;
   },
   // Only include public environment variables
