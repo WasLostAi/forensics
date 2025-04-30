@@ -238,10 +238,42 @@ export async function getWalletActivity(
   }
 }
 
-export async function getTransactionHistory(address: string, limit = 20, rpcUrl?: string): Promise<Transaction[]> {
-  // If mock mode is enabled, return mock data
+export async function getTransactionHistory(
+  address: string,
+  limit = 20,
+  rpcUrl?: string,
+  before?: string,
+): Promise<Transaction[]> {
+  // If mock mode is enabled, return mock data with pagination
   if (ENABLE_MOCK_MODE) {
-    return mockData.transactions
+    // Generate more mock data for pagination testing
+    if (!mockData.transactions || mockData.transactions.length === 0) {
+      // Generate 100 mock transactions for testing pagination
+      mockData.transactions = Array.from({ length: 100 }, (_, i) => ({
+        signature: `mock-signature-${i + 1}-${Math.random().toString(36).substring(2, 10)}`,
+        blockTime: Math.floor(Date.now() / 1000) - i * 3600, // Each transaction 1 hour apart
+        status: "confirmed",
+        fee: 0.000005,
+        amount: Math.random() * 10,
+        type: Math.random() > 0.7 ? "swap" : "transfer",
+        source: Math.random() > 0.5 ? address : `mock-address-${i % 10}`,
+        destination: Math.random() > 0.5 ? `mock-address-${i % 15}` : address,
+        program: "system",
+        cluster: "mainnet",
+      }))
+    }
+
+    // Find the starting index based on the 'before' parameter
+    let startIndex = 0
+    if (before) {
+      const beforeIndex = mockData.transactions.findIndex((tx) => tx.signature === before)
+      if (beforeIndex !== -1) {
+        startIndex = beforeIndex + 1
+      }
+    }
+
+    // Return paginated results
+    return mockData.transactions.slice(startIndex, startIndex + limit)
   }
 
   try {
@@ -250,11 +282,16 @@ export async function getTransactionHistory(address: string, limit = 20, rpcUrl?
       throw new Error("No Solana connection available")
     }
 
-    console.log(`Fetching transaction history for wallet: ${address}`)
+    console.log(`Fetching transaction history for wallet: ${address}, limit: ${limit}, before: ${before || "none"}`)
     const publicKey = new PublicKey(address)
 
-    // Get signatures
-    const signatures = await conn.getSignaturesForAddress(publicKey, { limit })
+    // Get signatures with pagination
+    const options: any = { limit }
+    if (before) {
+      options.before = before
+    }
+
+    const signatures = await conn.getSignaturesForAddress(publicKey, options)
 
     if (signatures.length === 0) {
       return []

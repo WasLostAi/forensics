@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Badge } from "@/components/ui/badge"
-import { ChevronDown, Filter, ArrowUpDown, ExternalLink, AlertCircle } from "lucide-react"
+import { ChevronDown, Filter, ArrowUpDown, ExternalLink, AlertCircle, ChevronLeft, ChevronRight } from "lucide-react"
 import { getTransactionHistory } from "@/lib/solana"
 import { formatSol, formatDate, shortenAddress } from "@/lib/utils"
 import type { Transaction } from "@/types/transaction"
@@ -24,29 +24,73 @@ export function TransactionList({ walletAddress }: TransactionListProps) {
   const [error, setError] = useState<string | null>(null)
   const [page, setPage] = useState(1)
   const [searchQuery, setSearchQuery] = useState("")
+  const [pageSize] = useState(10) // Number of transactions per page
+  const [hasMore, setHasMore] = useState(true)
+  const [lastSignature, setLastSignature] = useState<string | undefined>(undefined)
+  const [pageHistory, setPageHistory] = useState<string[]>([])
+
+  // Load transactions function
+  async function loadTransactions(reset = false) {
+    if (!walletAddress) return
+
+    setIsLoading(true)
+    setError(null)
+
+    try {
+      console.log(
+        `Fetching transactions for wallet: ${walletAddress}, page: ${page}, before: ${lastSignature || "none"}`,
+      )
+
+      // If resetting, clear the page history and last signature
+      if (reset) {
+        setPageHistory([])
+        setLastSignature(undefined)
+      }
+
+      const data = await getTransactionHistory(walletAddress, pageSize, rpcUrl, reset ? undefined : lastSignature)
+
+      setTransactions(data)
+      setHasMore(data.length === pageSize)
+
+      // Store the last signature for pagination
+      if (data.length > 0) {
+        const lastTx = data[data.length - 1]
+        if (!reset && lastSignature) {
+          setPageHistory((prev) => [...prev, lastSignature])
+        }
+        setLastSignature(lastTx.signature)
+      } else {
+        setHasMore(false)
+      }
+    } catch (err) {
+      console.error("Failed to load transactions:", err)
+      setError(`Failed to fetch transaction data: ${err instanceof Error ? err.message : String(err)}`)
+      setTransactions([])
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   useEffect(() => {
-    async function loadTransactions() {
-      if (!walletAddress) return
+    loadTransactions(true)
+  }, [walletAddress, rpcUrl])
 
-      setIsLoading(true)
-      setError(null)
-
-      try {
-        console.log(`Fetching transactions for wallet: ${walletAddress}, page: ${page}`)
-        const data = await getTransactionHistory(walletAddress, 20, rpcUrl)
-        setTransactions(data)
-      } catch (err) {
-        console.error("Failed to load transactions:", err)
-        setError(`Failed to fetch transaction data: ${err instanceof Error ? err.message : String(err)}`)
-        setTransactions([])
-      } finally {
-        setIsLoading(false)
-      }
+  const handleNextPage = () => {
+    if (hasMore) {
+      setPage((p) => p + 1)
+      loadTransactions(false)
     }
+  }
 
-    loadTransactions()
-  }, [walletAddress, page, rpcUrl])
+  const handlePrevPage = () => {
+    if (pageHistory.length > 0) {
+      const prevSignature = pageHistory[pageHistory.length - 1]
+      setPageHistory((prev) => prev.slice(0, -1))
+      setLastSignature(prevSignature)
+      setPage((p) => p - 1)
+      loadTransactions(false)
+    }
+  }
 
   const filteredTransactions = transactions.filter(
     (tx) =>
@@ -115,11 +159,13 @@ export function TransactionList({ walletAddress }: TransactionListProps) {
           </TableHeader>
           <TableBody>
             {isLoading ? (
-              <TableRow>
-                <TableCell colSpan={7} className="h-24 text-center">
-                  Loading transactions...
-                </TableCell>
-              </TableRow>
+              Array.from({ length: pageSize }).map((_, index) => (
+                <TableRow key={`loading-${index}`} className="animate-pulse">
+                  <TableCell colSpan={7} className="h-16">
+                    <div className="h-4 bg-muted rounded w-full"></div>
+                  </TableCell>
+                </TableRow>
+              ))
             ) : filteredTransactions.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={7} className="h-24 text-center">
@@ -165,13 +211,25 @@ export function TransactionList({ walletAddress }: TransactionListProps) {
         </Table>
       </div>
 
-      <div className="flex items-center justify-end space-x-2">
-        <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}>
-          Previous
-        </Button>
-        <Button variant="outline" size="sm" onClick={() => setPage((p) => p + 1)}>
-          Next
-        </Button>
+      <div className="flex items-center justify-between">
+        <div className="text-sm text-muted-foreground">
+          Showing page {page} {hasMore ? "" : "(end)"}
+        </div>
+        <div className="flex items-center space-x-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handlePrevPage}
+            disabled={page === 1 || pageHistory.length === 0}
+          >
+            <ChevronLeft className="h-4 w-4 mr-1" />
+            Previous
+          </Button>
+          <Button variant="outline" size="sm" onClick={handleNextPage} disabled={!hasMore || isLoading}>
+            Next
+            <ChevronRight className="h-4 w-4 ml-1" />
+          </Button>
+        </div>
       </div>
     </div>
   )
