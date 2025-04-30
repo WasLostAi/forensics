@@ -11,8 +11,9 @@ import { EntityStatistics } from "@/components/entity-statistics"
 import { EntityBulkOperations } from "@/components/entity-bulk-operations"
 import { EntityImportExport } from "@/components/entity-import-export"
 import { EntityAdvancedSearch, type EntitySearchFilter } from "@/components/entity-advanced-search"
-import { Database, Filter, Plus, Tag, Upload, Users } from "lucide-react"
+import { Database, Filter, Network, Plus, Tag, Upload, Users } from "lucide-react"
 import Link from "next/link"
+import { EntityNetworkDashboard } from "@/components/entity-network-dashboard"
 
 export function EntityManagementDashboard() {
   const [searchFilters, setSearchFilters] = useState<EntitySearchFilter[]>([])
@@ -118,7 +119,7 @@ export function EntityManagementDashboard() {
       <EntityAdvancedSearch onSearch={handleSearch} />
 
       <Tabs defaultValue="entities" className="space-y-6">
-        <TabsList className="grid grid-cols-2 md:grid-cols-5 w-full">
+        <TabsList className="grid grid-cols-2 md:grid-cols-6 w-full">
           <TabsTrigger value="entities">
             <Tag className="mr-2 h-4 w-4" />
             <span className="hidden md:inline">Entities</span>
@@ -126,6 +127,10 @@ export function EntityManagementDashboard() {
           <TabsTrigger value="clusters">
             <Users className="mr-2 h-4 w-4" />
             <span className="hidden md:inline">Clusters</span>
+          </TabsTrigger>
+          <TabsTrigger value="network">
+            <Network className="mr-2 h-4 w-4" />
+            <span className="hidden md:inline">Network</span>
           </TabsTrigger>
           <TabsTrigger value="bulk">
             <Filter className="mr-2 h-4 w-4" />
@@ -159,6 +164,10 @@ export function EntityManagementDashboard() {
 
         <TabsContent value="statistics" className="space-y-6">
           <EntityStatistics />
+        </TabsContent>
+
+        <TabsContent value="network" className="space-y-6">
+          <EntityNetworkDashboard />
         </TabsContent>
       </Tabs>
 
