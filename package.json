@@ -61,9 +61,10 @@
     "jspdf": "latest",
     "html2canvas": "latest",
     "@solana/web3.js": "latest",
-    "@supabase/supabase-js": "latest",
     "webpack": "latest",
-    "reactflow": "latest"
+    "reactflow": "latest",
+    "@supabase/supabase-js": "latest",
+    "d3": "latest"
   },
   "devDependencies": {
     "@types/node": "^22",

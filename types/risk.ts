@@ -43,3 +43,26 @@ export interface RiskTrend {
   trend: "increasing" | "decreasing" | "stable"
   percentChange: number
 }
+
+export interface RiskMetrics {
+  totalTransactions: number
+  totalVolume: number
+  avgTransactionSize: number
+  mixerInteractions: number
+  exchangeInteractions: number
+  unknownInteractions: number
+  highRiskInteractions: number
+  age: number
+  velocityScore: number
+  patternScore: number
+  clusterScore: number
+}
+
+export interface WalletRiskScore {
+  address: string
+  overallScore: number
+  riskLevel: "low" | "medium" | "high" | "unknown"
+  riskFactors: any[]
+  metrics: RiskMetrics
+  timestamp: string
+}

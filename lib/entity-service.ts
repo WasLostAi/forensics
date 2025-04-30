@@ -1,7 +1,10 @@
-import { supabase } from "./supabase"
+import { createClient } from "@/lib/supabase"
 import type { EntityLabel } from "@/types/entity"
 
+// Get all entity labels - this replaces fetchEntityLabelsFromDB
 export async function fetchEntityLabelsFromDB(walletAddress: string): Promise<EntityLabel[]> {
+  const supabase = createClient()
+
   try {
     const { data, error } = await supabase.from("entity_labels").select("*").eq("address", walletAddress)
 
@@ -31,9 +34,57 @@ export async function fetchEntityLabelsFromDB(walletAddress: string): Promise<En
   }
 }
 
+// Get entity label by address
+export async function getEntityLabel(address: string, labelName?: string): Promise<EntityLabel | null> {
+  const supabase = createClient()
+
+  try {
+    let query = supabase.from("entity_labels").select("*").eq("address", address)
+
+    if (labelName) {
+      query = query.eq("label", labelName)
+    }
+
+    const { data, error } = await query.single()
+
+    if (error) {
+      if (error.code === "PGRST116") {
+        // No rows found
+        return null
+      }
+      console.error("Error fetching entity label:", error)
+      throw error
+    }
+
+    if (!data) return null
+
+    // Convert from DB format to application format
+    return {
+      id: data.id,
+      address: data.address,
+      label: data.label,
+      category: data.category as any,
+      confidence: data.confidence,
+      source: data.source,
+      createdAt: data.created_at,
+      updatedAt: data.updated_at,
+      verified: data.verified,
+      riskScore: data.risk_score || undefined,
+      tags: data.tags || undefined,
+      notes: data.notes || undefined,
+    }
+  } catch (error) {
+    console.error("Failed to fetch entity label:", error)
+    throw error
+  }
+}
+
+// Create a new entity label - this is the missing saveEntityLabel function
 export async function saveEntityLabel(
   label: Omit<EntityLabel, "id" | "createdAt" | "updatedAt">,
 ): Promise<EntityLabel> {
+  const supabase = createClient()
+
   try {
     const { data, error } = await supabase
       .from("entity_labels")
@@ -76,7 +127,10 @@ export async function saveEntityLabel(
   }
 }
 
+// Update an existing entity label
 export async function updateEntityLabel(id: string, updates: Partial<EntityLabel>): Promise<EntityLabel> {
+  const supabase = createClient()
+
   try {
     const { data, error } = await supabase
       .from("entity_labels")
@@ -120,7 +174,10 @@ export async function updateEntityLabel(id: string, updates: Partial<EntityLabel
   }
 }
 
+// Delete an entity label
 export async function deleteEntityLabel(id: string): Promise<void> {
+  const supabase = createClient()
+
   try {
     const { error } = await supabase.from("entity_labels").delete().eq("id", id)
 
@@ -132,4 +189,84 @@ export async function deleteEntityLabel(id: string): Promise<void> {
     console.error("Failed to delete entity label:", error)
     throw error
   }
+}
+
+// Get entity labels by category
+export async function getEntityLabelsByCategory(category: string): Promise<EntityLabel[]> {
+  const supabase = createClient()
+
+  const { data, error } = await supabase
+    .from("entity_labels")
+    .select("*")
+    .eq("category", category)
+    .order("created_at", { ascending: false })
+
+  if (error) {
+    console.error("Error fetching entity labels by category:", error)
+    throw new Error("Failed to fetch entity labels by category")
+  }
+
+  return data || []
+}
+
+// Get entity labels by risk level
+export async function getEntityLabelsByRiskLevel(riskLevel: string): Promise<EntityLabel[]> {
+  const supabase = createClient()
+
+  const { data, error } = await supabase
+    .from("entity_labels")
+    .select("*")
+    .eq("risk_level", riskLevel)
+    .order("created_at", { ascending: false })
+
+  if (error) {
+    console.error("Error fetching entity labels by risk level:", error)
+    throw new Error("Failed to fetch entity labels by risk level")
+  }
+
+  return data || []
+}
+
+// Bulk create entity labels
+export async function bulkCreateEntityLabels(labels: Omit<EntityLabel, "id" | "created_at">[]): Promise<EntityLabel[]> {
+  const supabase = createClient()
+
+  const { data, error } = await supabase.from("entity_labels").insert(labels).select()
+
+  if (error) {
+    console.error("Error bulk creating entity labels:", error)
+    throw new Error("Failed to bulk create entity labels")
+  }
+
+  return data || []
+}
+
+// Bulk delete entity labels
+export async function bulkDeleteEntityLabels(ids: string[]): Promise<void> {
+  const supabase = createClient()
+
+  const { error } = await supabase.from("entity_labels").delete().in("id", ids)
+
+  if (error) {
+    console.error("Error bulk deleting entity labels:", error)
+    throw new Error("Failed to bulk delete entity labels")
+  }
+}
+
+// Search entity labels
+export async function searchEntityLabels(query: string): Promise<EntityLabel[]> {
+  const supabase = createClient()
+
+  const { data, error } = await supabase
+    .from("entity_labels")
+    .select("*")
+    .or(`name.ilike.%${query}%,address.ilike.%${query}%,description.ilike.%${query}%`)
+    .order("created_at", { ascending: false })
+
+  if (error) {
+    console.error("Error searching entity labels:", error)
+    throw new Error("Failed to search entity labels")
+  }
+
+  return data || []
 }
