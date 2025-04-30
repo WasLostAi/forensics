@@ -56,12 +56,11 @@ export function SavedInvestigations() {
       try {
         const data = await fetchInvestigations()
         setInvestigations(data)
-        setError(null) // Clear any previous errors
       } catch (error) {
         console.error("Failed to load investigations:", error)
-        setError("Failed to load investigations. Using mock data instead.")
+        setError("Failed to load investigations")
 
-        // Use mock data as fallback
+        // Mock data for demo
         const mockInvestigations: Investigation[] = [
           {
             id: "1",
@@ -180,9 +179,9 @@ export function SavedInvestigations() {
   return (
     <div className="space-y-4">
       {error && (
-        <Alert variant={error.includes("mock data") ? "warning" : "destructive"} className="mb-4">
+        <Alert variant="destructive" className="mb-4">
           <AlertCircle className="h-4 w-4" />
-          <AlertTitle>{error.includes("mock data") ? "Notice" : "Error"}</AlertTitle>
+          <AlertTitle>Error</AlertTitle>
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}

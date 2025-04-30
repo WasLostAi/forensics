@@ -13,65 +13,93 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Card, CardContent } from "@/components/ui/card"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Badge } from "@/components/ui/badge"
 import { Textarea } from "@/components/ui/textarea"
-import { Switch } from "@/components/ui/switch"
-import { Copy, Share2, Mail, LinkIcon, Users, MessageSquare } from "lucide-react"
-import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Share2, MessageSquare, Copy, Check, Mail, Send } from "lucide-react"
 
 interface CollaborationToolsProps {
   walletAddress: string
-  investigationId?: string
-  investigationTitle?: string
+  reportTitle?: string
 }
 
-export function CollaborationTools({
-  walletAddress,
-  investigationId,
-  investigationTitle = "Wallet Analysis",
-}: CollaborationToolsProps) {
+export function CollaborationTools({ walletAddress, reportTitle = "Wallet Analysis" }: CollaborationToolsProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false)
-  const [activeTab, setActiveTab] = useState("link")
+  const [activeTab, setActiveTab] = useState("share")
+  const [email, setEmail] = useState("")
+  const [message, setMessage] = useState("")
+  const [permission, setPermission] = useState("view")
+  const [copied, setCopied] = useState(false)
   const [isSending, setIsSending] = useState(false)
-  const [sendError, setSendError] = useState<string | null>(null)
-  const [sendSuccess, setSendSuccess] = useState(false)
-  const [emailRecipients, setEmailRecipients] = useState("")
-  const [emailMessage, setEmailMessage] = useState("")
-  const [includeReadOnly, setIncludeReadOnly] = useState(true)
-  const [includeComments, setIncludeComments] = useState(true)
+  const [isShared, setIsShared] = useState(false)
 
-  const shareableLink = `${window.location.origin}/shared/${investigationId || walletAddress}`
+  const shareLink = `https://solana-forensics.vercel.app/wallet/${walletAddress}?shared=true`
 
   const handleCopyLink = () => {
-    navigator.clipboard.writeText(shareableLink)
-    setShareLinkCopied(true)
-    setTimeout(() => setShareLinkCopied(false), 2000)
+    navigator.clipboard.writeText(shareLink)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
   }
 
-  const [shareLinkCopied, setShareLinkCopied] = useState(false)
+  const handleSendInvite = () => {
+    if (!email) return
 
-  const handleSendInvites = async () => {
     setIsSending(true)
-    setSendError(null)
-    setSendSuccess(false)
 
-    try {
-      // In a real implementation, this would call an API to send invites
-      // For now, we'll just simulate a successful send
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-      setSendSuccess(true)
-      setEmailRecipients("")
-      setEmailMessage("")
-    } catch (error) {
-      console.error("Failed to send invites:", error)
-      setSendError("Failed to send invites. Please try again.")
-    } finally {
+    // Simulate API call
+    setTimeout(() => {
       setIsSending(false)
-    }
+      setIsShared(true)
+      setEmail("")
+      setMessage("")
+    }, 1500)
   }
+
+  const collaborators = [
+    {
+      id: "1",
+      name: "Alex Johnson",
+      email: "alex@example.com",
+      role: "Owner",
+      avatar: "/placeholder.svg?height=40&width=40",
+    },
+    {
+      id: "2",
+      name: "Sam Wilson",
+      email: "sam@example.com",
+      role: "Editor",
+      avatar: "/placeholder.svg?height=40&width=40",
+    },
+    {
+      id: "3",
+      name: "Taylor Smith",
+      email: "taylor@example.com",
+      role: "Viewer",
+      avatar: "/placeholder.svg?height=40&width=40",
+    },
+  ]
+
+  const comments = [
+    {
+      id: "1",
+      author: "Alex Johnson",
+      avatar: "/placeholder.svg?height=40&width=40",
+      content: "I noticed a suspicious pattern in the transaction flow. Check the highlighted path.",
+      timestamp: "2 hours ago",
+    },
+    {
+      id: "2",
+      author: "Sam Wilson",
+      avatar: "/placeholder.svg?height=40&width=40",
+      content: "This wallet has connections to multiple exchanges. I've added labels for Binance and Kraken.",
+      timestamp: "Yesterday",
+    },
+  ]
 
   return (
     <>
-      <Button onClick={() => setIsDialogOpen(true)} variant="outline" className="gap-2">
+      <Button variant="outline" onClick={() => setIsDialogOpen(true)} className="gap-2">
         <Share2 className="h-4 w-4" />
         Share
       </Button>
@@ -79,143 +107,164 @@ export function CollaborationTools({
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Share Investigation</DialogTitle>
-            <DialogDescription>
-              Share this wallet analysis with your team or export it for collaboration.
-            </DialogDescription>
+            <DialogTitle>Collaboration Tools</DialogTitle>
+            <DialogDescription>Share this investigation with your team or add comments</DialogDescription>
           </DialogHeader>
 
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="link" className="flex items-center gap-2">
-                <LinkIcon className="h-4 w-4" />
-                Link
+          <Tabs defaultValue="share" value={activeTab} onValueChange={setActiveTab}>
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="share" className="flex items-center gap-2">
+                <Share2 className="h-4 w-4" />
+                Share
               </TabsTrigger>
-              <TabsTrigger value="email" className="flex items-center gap-2">
-                <Mail className="h-4 w-4" />
-                Email
-              </TabsTrigger>
-              <TabsTrigger value="team" className="flex items-center gap-2">
-                <Users className="h-4 w-4" />
-                Team
+              <TabsTrigger value="comments" className="flex items-center gap-2">
+                <MessageSquare className="h-4 w-4" />
+                Comments
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="link" className="space-y-4 py-4">
+            <TabsContent value="share" className="space-y-4 pt-4">
               <div className="space-y-2">
-                <Label htmlFor="share-link">Shareable Link</Label>
-                <div className="flex items-center space-x-2">
-                  <Input id="share-link" value={shareableLink} readOnly />
-                  <Button size="sm" onClick={handleCopyLink}>
-                    <Copy className="h-4 w-4" />
+                <Label>Share Link</Label>
+                <div className="flex gap-2">
+                  <Input value={shareLink} readOnly className="flex-1" />
+                  <Button variant="outline" size="icon" onClick={handleCopyLink}>
+                    {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                    <span className="sr-only">Copy link</span>
                   </Button>
                 </div>
-                {shareLinkCopied && <p className="text-xs text-green-500">Link copied to clipboard!</p>}
               </div>
 
               <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="read-only">Read-only access</Label>
-                  <Switch id="read-only" checked={includeReadOnly} onCheckedChange={setIncludeReadOnly} />
+                <Label htmlFor="email">Invite by Email</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="colleague@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                  />
+                  <select
+                    value={permission}
+                    onChange={(e) => setPermission(e.target.value)}
+                    className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  >
+                    <option value="view">Can view</option>
+                    <option value="edit">Can edit</option>
+                    <option value="admin">Admin</option>
+                  </select>
                 </div>
-                <p className="text-xs text-muted-foreground">Recipients can view but not modify the investigation.</p>
-              </div>
-            </TabsContent>
-
-            <TabsContent value="email" className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="email-recipients">Email Recipients</Label>
-                <Input
-                  id="email-recipients"
-                  placeholder="email@example.com, another@example.com"
-                  value={emailRecipients}
-                  onChange={(e) => setEmailRecipients(e.target.value)}
-                />
-                <p className="text-xs text-muted-foreground">Separate multiple emails with commas.</p>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="email-message">Message (Optional)</Label>
+                <Label htmlFor="message">Message (optional)</Label>
                 <Textarea
-                  id="email-message"
-                  placeholder="I'd like to share this wallet analysis with you..."
-                  value={emailMessage}
-                  onChange={(e) => setEmailMessage(e.target.value)}
+                  id="message"
+                  placeholder="Add a message to your invitation"
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
                   rows={3}
                 />
               </div>
 
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="include-comments">Include comments</Label>
-                  <Switch id="include-comments" checked={includeComments} onCheckedChange={setIncludeComments} />
+              <Button onClick={handleSendInvite} disabled={!email || isSending} className="w-full">
+                {isSending ? (
+                  "Sending..."
+                ) : (
+                  <>
+                    <Mail className="mr-2 h-4 w-4" />
+                    Send Invite
+                  </>
+                )}
+              </Button>
+
+              {isShared && (
+                <div className="rounded-md bg-green-50 p-4 dark:bg-green-900/20">
+                  <div className="flex">
+                    <div className="flex-shrink-0">
+                      <Check className="h-5 w-5 text-green-400 dark:text-green-500" />
+                    </div>
+                    <div className="ml-3">
+                      <p className="text-sm font-medium text-green-800 dark:text-green-200">
+                        Invitation sent successfully!
+                      </p>
+                    </div>
+                  </div>
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  Include any comments and notes added to the investigation.
-                </p>
+              )}
+
+              <div className="space-y-2 pt-4">
+                <Label>Current Collaborators</Label>
+                <Card>
+                  <CardContent className="p-0">
+                    <ul className="divide-y">
+                      {collaborators.map((collaborator) => (
+                        <li key={collaborator.id} className="flex items-center justify-between p-4">
+                          <div className="flex items-center gap-3">
+                            <Avatar>
+                              <AvatarImage src={collaborator.avatar} alt={collaborator.name} />
+                              <AvatarFallback>{collaborator.name.charAt(0)}</AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <p className="font-medium">{collaborator.name}</p>
+                              <p className="text-sm text-muted-foreground">{collaborator.email}</p>
+                            </div>
+                          </div>
+                          <Badge variant={collaborator.role === "Owner" ? "default" : "outline"}>
+                            {collaborator.role}
+                          </Badge>
+                        </li>
+                      ))}
+                    </ul>
+                  </CardContent>
+                </Card>
               </div>
-
-              {sendError && (
-                <Alert variant="destructive">
-                  <AlertDescription>{sendError}</AlertDescription>
-                </Alert>
-              )}
-
-              {sendSuccess && (
-                <Alert variant="success">
-                  <AlertDescription>Invitations sent successfully!</AlertDescription>
-                </Alert>
-              )}
             </TabsContent>
 
-            <TabsContent value="team" className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label>Team Workspace</Label>
-                <div className="rounded-md border p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Users className="h-5 w-5 text-muted-foreground" />
-                      <span className="font-medium">Forensics Team</span>
+            <TabsContent value="comments" className="space-y-4 pt-4">
+              <div className="space-y-4">
+                {comments.map((comment) => (
+                  <div key={comment.id} className="flex gap-3">
+                    <Avatar>
+                      <AvatarImage src={comment.avatar} alt={comment.author} />
+                      <AvatarFallback>{comment.author.charAt(0)}</AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 space-y-1">
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-medium">{comment.author}</p>
+                        <p className="text-xs text-muted-foreground">{comment.timestamp}</p>
+                      </div>
+                      <p className="text-sm">{comment.content}</p>
                     </div>
-                    <Button size="sm" variant="outline">
-                      Share
-                    </Button>
                   </div>
-                  <p className="mt-2 text-sm text-muted-foreground">
-                    Share with all members of your forensics team workspace.
-                  </p>
-                </div>
+                ))}
               </div>
 
-              <div className="space-y-2">
-                <Label>Recent Collaborators</Label>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between rounded-md border p-2">
-                    <span>alice@example.com</span>
-                    <Button size="sm" variant="ghost">
-                      <MessageSquare className="h-4 w-4" />
-                    </Button>
-                  </div>
-                  <div className="flex items-center justify-between rounded-md border p-2">
-                    <span>bob@example.com</span>
-                    <Button size="sm" variant="ghost">
-                      <MessageSquare className="h-4 w-4" />
-                    </Button>
+              <div className="pt-4">
+                <Label htmlFor="new-comment">Add Comment</Label>
+                <div className="mt-2 flex gap-3">
+                  <Avatar>
+                    <AvatarFallback>Y</AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 space-y-2">
+                    <Textarea id="new-comment" placeholder="Add your comment..." rows={2} />
+                    <div className="flex justify-end">
+                      <Button size="sm">
+                        <Send className="mr-2 h-4 w-4" />
+                        Post
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </div>
             </TabsContent>
           </Tabs>
 
-          <DialogFooter>
+          <DialogFooter className="sm:justify-start">
             <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-              Cancel
+              Close
             </Button>
-            {activeTab === "email" && (
-              <Button onClick={handleSendInvites} disabled={isSending || !emailRecipients.trim()}>
-                {isSending ? "Sending..." : "Send Invites"}
-              </Button>
-            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>

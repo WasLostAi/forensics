@@ -6,8 +6,6 @@ import { TransactionClustersView } from "@/components/transaction-clusters-view"
 import { WalletRiskScore } from "@/components/wallet-risk-score"
 import { TransactionRiskAnalysis } from "@/components/transaction-risk-analysis"
 import { RiskMetricsDashboard } from "@/components/risk-metrics-dashboard"
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
 
 interface WalletPageProps {
   params: {
@@ -22,11 +20,6 @@ export default function WalletPage({ params }: WalletPageProps) {
     <div className="container py-6 space-y-6">
       <h1 className="text-2xl font-bold">Wallet Analysis</h1>
       <p className="text-muted-foreground">Detailed analysis for wallet {address}</p>
-      <Link href={`/entity-network/${address}`} className="inline-block mt-2">
-        <Button variant="outline" size="sm">
-          View Entity Network
-        </Button>
-      </Link>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="md:col-span-2">

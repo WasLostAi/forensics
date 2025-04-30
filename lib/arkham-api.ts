@@ -12,23 +12,11 @@ export async function validateArkhamCredentials(): Promise<{
 
     try {
       const response = await fetch("/api/arkham/validate", {
-        method: "GET", // Changed from POST to GET to match the route handler
-        headers: {
-          Accept: "application/json",
-        },
+        method: "GET",
         signal: controller.signal,
       })
 
       clearTimeout(timeoutId)
-
-      // Check if the response is JSON before trying to parse it
-      const contentType = response.headers.get("content-type")
-      if (!contentType || !contentType.includes("application/json")) {
-        return {
-          success: false,
-          error: `Expected JSON response but got ${contentType || "unknown content type"}`,
-        }
-      }
 
       if (!response.ok) {
         return {
@@ -39,7 +27,7 @@ export async function validateArkhamCredentials(): Promise<{
 
       const data = await response.json()
       return {
-        success: data.valid === true, // Changed from data.success to data.valid to match the route handler
+        success: data.valid === true,
         error: data.error,
       }
     } catch (fetchError) {
@@ -77,19 +65,10 @@ export async function fetchArkhamTransactionFlow(
 
     try {
       const response = await fetch(`/api/arkham?address=${encodeURIComponent(walletAddress)}`, {
-        headers: {
-          Accept: "application/json",
-        },
         signal: controller.signal,
       })
 
       clearTimeout(timeoutId)
-
-      // Check if the response is JSON before trying to parse it
-      const contentType = response.headers.get("content-type")
-      if (!contentType || !contentType.includes("application/json")) {
-        throw new Error(`Expected JSON response but got ${contentType || "unknown content type"}`)
-      }
 
       if (!response.ok) {
         throw new Error(`API returned status ${response.status}`)

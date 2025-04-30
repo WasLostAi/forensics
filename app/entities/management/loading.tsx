@@ -1,42 +1,50 @@
 import { Skeleton } from "@/components/ui/skeleton"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 export default function EntityManagementLoading() {
   return (
     <div className="container mx-auto py-6 space-y-8">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <Skeleton className="h-8 w-64 mb-2" />
-          <Skeleton className="h-4 w-96" />
-        </div>
-
-        <div className="flex flex-wrap gap-2">
-          <Skeleton className="h-10 w-32" />
-          <Skeleton className="h-10 w-32" />
-          <Skeleton className="h-10 w-32" />
-        </div>
+      <div>
+        <Skeleton className="h-10 w-64 mb-2" />
+        <Skeleton className="h-5 w-full max-w-xl" />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {[1, 2, 3].map((i) => (
-          <Card key={i}>
-            <CardHeader className="pb-2">
-              <Skeleton className="h-6 w-40 mb-1" />
-              <Skeleton className="h-4 w-32" />
+      <Tabs defaultValue="labels" className="space-y-6">
+        <TabsList className="grid grid-cols-4 w-full max-w-2xl">
+          <TabsTrigger value="labels">Labels</TabsTrigger>
+          <TabsTrigger value="bulk">Bulk Operations</TabsTrigger>
+          <TabsTrigger value="import-export">Import/Export</TabsTrigger>
+          <TabsTrigger value="statistics">Statistics</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="labels" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <Skeleton className="h-6 w-48 mb-2" />
+              <Skeleton className="h-4 w-full max-w-sm" />
             </CardHeader>
             <CardContent>
-              <Skeleton className="h-16 w-full" />
+              <div className="space-y-4">
+                <div className="flex justify-between">
+                  <Skeleton className="h-10 w-32" />
+                  <Skeleton className="h-10 w-32" />
+                </div>
+                <div className="border rounded-md">
+                  <div className="h-10 border-b px-4 flex items-center">
+                    <Skeleton className="h-4 w-full" />
+                  </div>
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <div key={i} className="h-16 border-b px-4 flex items-center">
+                      <Skeleton className="h-4 w-full" />
+                    </div>
+                  ))}
+                </div>
+              </div>
             </CardContent>
           </Card>
-        ))}
-      </div>
-
-      <Skeleton className="h-32 w-full" />
-
-      <div className="space-y-6">
-        <Skeleton className="h-10 w-full" />
-        <Skeleton className="h-96 w-full" />
-      </div>
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }

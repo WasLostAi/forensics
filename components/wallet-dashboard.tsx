@@ -1,124 +1,178 @@
 "use client"
-
-import { useState, useEffect } from "react"
+import { useRef, useState } from "react"
+import { useSearchParams } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { TransactionList } from "@/components/transaction-list"
+import { Button } from "@/components/ui/button"
 import { TransactionFlow } from "@/components/transaction-flow"
 import { WalletOverview } from "@/components/wallet-overview"
-import { WalletRiskScore } from "@/components/wallet-risk-score"
-import { FundingSourceAnalysis } from "@/components/funding-source-analysis"
+import { TransactionList } from "@/components/transaction-list"
+import { EntityLabels } from "@/components/entity-labels"
 import { TransactionClusters } from "@/components/transaction-clusters"
-import { EmptyState } from "@/components/empty-state"
-import { useSettings } from "@/contexts/settings-context"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { AlertCircle } from "lucide-react"
+import { FundingSourceAnalysis } from "@/components/funding-source-analysis"
+import { AdvancedFilters } from "@/components/advanced-filters"
+import { ExportReport } from "@/components/export-report"
+import { CollaborationTools } from "@/components/collaboration-tools"
+import { OnboardingTour } from "@/components/onboarding-tour"
+import { Bookmark, BookmarkPlus } from "lucide-react"
 
-interface WalletDashboardProps {
-  address: string
-}
+export function WalletDashboard({ walletAddress }: { walletAddress?: string }) {
+  const searchParams = useSearchParams()
+  const addressParam = searchParams.get("address")
+  const finalWalletAddress = walletAddress || addressParam || ""
 
-export function WalletDashboard({ address }: WalletDashboardProps) {
-  const { apiStatus } = useSettings()
-  const [error, setError] = useState<string | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+  const tabParam = searchParams.get("tab")
+  const defaultTab = tabParam || "flow"
 
-  useEffect(() => {
-    // Simulate loading
-    const timer = setTimeout(() => {
-      setIsLoading(false)
-    }, 1000)
+  // Initialize state variables with default values
+  const [filters, setFilters] = useState<any>({})
+  const [isSaved, setIsSaved] = useState(false)
+  const reportRef = useRef<HTMLDivElement>(null)
 
-    return () => clearTimeout(timer)
-  }, [])
-
-  if (isLoading) {
+  // If no wallet address is provided, show a message
+  if (!finalWalletAddress) {
     return (
-      <div className="space-y-4">
-        <Card>
+      <div className="flex items-center justify-center h-[60vh]">
+        <Card className="w-full max-w-md">
           <CardHeader>
-            <div className="h-7 w-1/3 bg-muted animate-pulse rounded"></div>
-            <div className="h-4 w-1/2 bg-muted animate-pulse rounded"></div>
+            <CardTitle>No Wallet Address Provided</CardTitle>
+            <CardDescription>Please enter a Solana wallet address to analyze</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="h-40 bg-muted animate-pulse rounded"></div>
+            <p className="text-center text-muted-foreground mb-4">
+              Use the search bar to look up a Solana wallet address
+            </p>
           </CardContent>
         </Card>
       </div>
     )
   }
 
-  if (error) {
-    return (
-      <Alert variant="destructive">
-        <AlertCircle className="h-4 w-4" />
-        <AlertTitle>Error</AlertTitle>
-        <AlertDescription>{error}</AlertDescription>
-      </Alert>
-    )
+  const handleFilterChange = (newFilters: any) => {
+    setFilters(newFilters)
+    console.log("Applied filters:", newFilters)
   }
 
-  if (apiStatus === "invalid") {
-    return (
-      <Alert variant="warning">
-        <AlertCircle className="h-4 w-4" />
-        <AlertTitle>API Credentials Invalid</AlertTitle>
-        <AlertDescription>
-          Your API credentials are invalid or missing. Please update your credentials in the settings.
-        </AlertDescription>
-      </Alert>
-    )
-  }
-
-  if (apiStatus === "network-error") {
-    return (
-      <Alert variant="warning">
-        <AlertCircle className="h-4 w-4" />
-        <AlertTitle>Network Error</AlertTitle>
-        <AlertDescription>
-          Cannot connect to the API. Check your internet connection or try again later.
-        </AlertDescription>
-      </Alert>
-    )
-  }
-
-  if (!address) {
-    return <EmptyState title="No Wallet Selected" description="Please enter a wallet address to analyze" />
+  const handleSaveInvestigation = () => {
+    // In a real implementation, this would open the save dialog
+    // For now, just toggle the saved state
+    setIsSaved(!isSaved)
   }
 
   return (
-    <div className="space-y-6">
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <WalletOverview address={address} />
-        <WalletRiskScore address={address} />
+    <div className="space-y-6" ref={reportRef}>
+      <OnboardingTour />
+
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-genos font-bold solana-gradient-text">Wallet Analysis</h1>
+          <p className="text-muted-foreground">
+            Analyzing wallet: <span className="font-mono">{finalWalletAddress}</span>
+          </p>
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" onClick={handleSaveInvestigation} className="gap-2">
+            {isSaved ? (
+              <>
+                <Bookmark className="h-4 w-4" />
+                Saved
+              </>
+            ) : (
+              <>
+                <BookmarkPlus className="h-4 w-4" />
+                Save
+              </>
+            )}
+          </Button>
+
+          <ExportReport walletAddress={finalWalletAddress} reportRef={reportRef} />
+
+          <CollaborationTools walletAddress={finalWalletAddress} />
+        </div>
       </div>
 
-      <Tabs defaultValue="transactions" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="transactions">Transactions</TabsTrigger>
-          <TabsTrigger value="flow">Transaction Flow</TabsTrigger>
-          <TabsTrigger value="funding">Funding Sources</TabsTrigger>
-          <TabsTrigger value="clusters">Transaction Clusters</TabsTrigger>
+      <AdvancedFilters onFilterChange={handleFilterChange} />
+
+      <WalletOverview walletAddress={finalWalletAddress} />
+
+      <Tabs defaultValue={defaultTab}>
+        <TabsList className="grid w-full grid-cols-5 bg-secondary/40 backdrop-blur-sm">
+          <TabsTrigger value="flow" className="font-genos">
+            Transaction Flow
+          </TabsTrigger>
+          <TabsTrigger value="funding" className="font-genos">
+            Funding Sources
+          </TabsTrigger>
+          <TabsTrigger value="transactions" className="font-genos">
+            Transactions
+          </TabsTrigger>
+          <TabsTrigger value="clusters" className="font-genos">
+            Transaction Clusters
+          </TabsTrigger>
+          <TabsTrigger value="entities" className="font-genos">
+            Entity Labels
+          </TabsTrigger>
         </TabsList>
-        <TabsContent value="transactions" className="space-y-4">
-          <TransactionList walletAddress={address} />
-        </TabsContent>
-        <TabsContent value="flow" className="space-y-4">
+
+        <TabsContent value="flow" className="mt-4">
           <Card>
             <CardHeader>
-              <CardTitle>Transaction Flow</CardTitle>
-              <CardDescription>Visualize the flow of funds to and from this wallet</CardDescription>
+              <CardTitle className="font-genos">Transaction Flow Visualization</CardTitle>
+              <CardDescription>Interactive visualization of fund movements between wallets</CardDescription>
             </CardHeader>
-            <CardContent className="p-0">
-              <TransactionFlow walletAddress={address} />
+            <CardContent>
+              <TransactionFlow walletAddress={finalWalletAddress} />
             </CardContent>
           </Card>
         </TabsContent>
-        <TabsContent value="funding" className="space-y-4">
-          <FundingSourceAnalysis walletAddress={address} />
+
+        <TabsContent value="funding" className="mt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="font-genos">Funding Source Analysis</CardTitle>
+              <CardDescription>Detailed analysis of where funds originated from</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <FundingSourceAnalysis walletAddress={finalWalletAddress} />
+            </CardContent>
+          </Card>
         </TabsContent>
-        <TabsContent value="clusters" className="space-y-4">
-          <TransactionClusters walletAddress={address} />
+
+        <TabsContent value="transactions" className="mt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="font-genos">Transaction History</CardTitle>
+              <CardDescription>Complete history of transactions for this wallet</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <TransactionList walletAddress={finalWalletAddress} />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="clusters" className="mt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="font-genos">Transaction Clusters</CardTitle>
+              <CardDescription>Groups of related transactions and associated wallets</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <TransactionClusters walletAddress={finalWalletAddress} />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="entities" className="mt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="font-genos">Entity Labels</CardTitle>
+              <CardDescription>Known entities and labels associated with this wallet</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <EntityLabels walletAddress={finalWalletAddress} />
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
     </div>

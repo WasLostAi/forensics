@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Plus, Pencil, Trash2, AlertTriangle, CheckCircle2, Link, Network } from "lucide-react"
+import { Plus, Pencil, Trash2, AlertTriangle, CheckCircle2 } from "lucide-react"
 import {
   Dialog,
   DialogContent,
@@ -15,27 +15,15 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Slider } from "@/components/ui/slider"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Textarea } from "@/components/ui/textarea"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import {
-  fetchEntityLabelsFromDB,
-  saveEntityLabel,
-  updateEntityLabel,
-  deleteEntityLabel,
-  createEntityConnection,
-  getEntityConnections,
-  deleteEntityConnection,
-  getEntityClusters,
-  addEntityToCluster,
-  removeEntityFromCluster,
-} from "@/lib/entity-service"
+import { fetchEntityLabelsFromDB, saveEntityLabel, updateEntityLabel, deleteEntityLabel } from "@/lib/entity-service"
 import { searchEntities } from "@/lib/entity-database"
-import type { EntityLabel, EntityConnection, EntityCluster } from "@/types/entity"
+import type { EntityLabel } from "@/types/entity"
 
 interface EntityLabelManagementProps {
   walletAddress?: string
@@ -61,23 +49,6 @@ export function EntityLabelManagement({
     direction: "ascending" | "descending"
   }>({ key: null, direction: "ascending" })
 
-  // Connection state
-  const [connections, setConnections] = useState<EntityConnection[]>([])
-  const [isConnectionDialogOpen, setIsConnectionDialogOpen] = useState(false)
-  const [connectionFormData, setConnectionFormData] = useState({
-    sourceEntityId: "",
-    targetEntityId: "",
-    relationshipType: "related",
-    strength: 0.5,
-    evidence: "",
-  })
-
-  // Cluster state
-  const [clusters, setClusters] = useState<EntityCluster[]>([])
-  const [isClusterDialogOpen, setIsClusterDialogOpen] = useState(false)
-  const [selectedClusterId, setSelectedClusterId] = useState<string>("")
-  const [clusterSimilarityScore, setClusterSimilarityScore] = useState(0.7)
-
   // Form state
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
@@ -99,7 +70,6 @@ export function EntityLabelManagement({
   // Load labels
   useEffect(() => {
     loadLabels()
-    loadClusters()
   }, [walletAddress])
 
   // Filter and search labels
@@ -153,13 +123,6 @@ export function EntityLabelManagement({
     }
   }, [searchQuery])
 
-  // Load connections when a label is selected
-  useEffect(() => {
-    if (currentLabel) {
-      loadConnections(currentLabel.id)
-    }
-  }, [currentLabel])
-
   async function loadLabels() {
     setIsLoading(true)
     setError(null)
@@ -170,8 +133,71 @@ export function EntityLabelManagement({
         // Fetch labels for a specific wallet
         data = await fetchEntityLabelsFromDB(walletAddress)
       } else {
-        // Fetch all labels
-        data = await fetchEntityLabelsFromDB()
+        // Fetch all labels (this would need to be implemented in entity-service.ts)
+        // For now, we'll use mock data
+        data = [
+          {
+            id: "1",
+            address: "DefcyKc4yAjRsCLZjdxWuSUzVohXtLna9g22y3pBCm2z",
+            label: "Binance Hot Wallet",
+            category: "exchange",
+            confidence: 0.95,
+            source: "community",
+            createdAt: "2023-05-15T14:23:45Z",
+            updatedAt: "2023-05-15T14:23:45Z",
+            verified: true,
+            riskScore: 10,
+          },
+          {
+            id: "2",
+            address: "5xoBq7f7CDgZwqHrDBdRWM84ExRetg4gZq93dyJtoSwp",
+            label: "High Volume Trader",
+            category: "individual",
+            confidence: 0.75,
+            source: "algorithm",
+            createdAt: "2023-06-22T09:12:33Z",
+            updatedAt: "2023-06-22T09:12:33Z",
+            riskScore: 35,
+          },
+          {
+            id: "3",
+            address: "9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM",
+            label: "Suspicious Mixer",
+            category: "mixer",
+            confidence: 0.88,
+            source: "user",
+            createdAt: "2023-07-10T16:45:12Z",
+            updatedAt: "2023-07-10T16:45:12Z",
+            riskScore: 85,
+            tags: ["high-risk", "mixer"],
+          },
+          {
+            id: "4",
+            address: "7YttLkHDoNj9wyDur5pM1ejNaAvT9X4eqaYcHQqtj2G5",
+            label: "Solana Foundation",
+            category: "contract",
+            confidence: 1.0,
+            source: "database",
+            createdAt: "2023-04-05T10:30:22Z",
+            updatedAt: "2023-04-05T10:30:22Z",
+            verified: true,
+            riskScore: 5,
+            tags: ["verified", "foundation"],
+          },
+          {
+            id: "5",
+            address: "3XMrhbv989VxAMi3DErLV9eJht1pHppW5LbKxe9fkEFR",
+            label: "Phishing Contract",
+            category: "scam",
+            confidence: 0.92,
+            source: "community",
+            createdAt: "2023-08-18T21:15:40Z",
+            updatedAt: "2023-08-18T21:15:40Z",
+            riskScore: 95,
+            tags: ["phishing", "scam", "high-risk"],
+            notes: "Known phishing contract that steals tokens by requesting unlimited approvals",
+          },
+        ]
       }
 
       setLabels(data)
@@ -181,26 +207,6 @@ export function EntityLabelManagement({
       setError("Failed to load entity labels. Please try again.")
     } finally {
       setIsLoading(false)
-    }
-  }
-
-  async function loadConnections(entityId: string) {
-    try {
-      const data = await getEntityConnections(entityId)
-      setConnections(data)
-    } catch (error) {
-      console.error("Failed to load entity connections:", error)
-      setError("Failed to load entity connections. Please try again.")
-    }
-  }
-
-  async function loadClusters() {
-    try {
-      const data = await getEntityClusters()
-      setClusters(data)
-    } catch (error) {
-      console.error("Failed to load entity clusters:", error)
-      setError("Failed to load entity clusters. Please try again.")
     }
   }
 
@@ -335,94 +341,6 @@ export function EntityLabelManagement({
     }
   }
 
-  const handleAddConnection = async () => {
-    if (!currentLabel) return
-
-    try {
-      setError(null)
-
-      if (!connectionFormData.targetEntityId) {
-        setError("Target entity is required")
-        return
-      }
-
-      const newConnection = await createEntityConnection({
-        sourceEntityId: currentLabel.id,
-        targetEntityId: connectionFormData.targetEntityId,
-        relationshipType: connectionFormData.relationshipType,
-        strength: connectionFormData.strength,
-        evidence: connectionFormData.evidence,
-        createdBy: "user", // In a real app, this would be the current user's ID
-      })
-
-      setConnections([...connections, newConnection])
-      setConnectionFormData({
-        sourceEntityId: "",
-        targetEntityId: "",
-        relationshipType: "related",
-        strength: 0.5,
-        evidence: "",
-      })
-      setIsConnectionDialogOpen(false)
-    } catch (error) {
-      console.error("Failed to add connection:", error)
-      setError("Failed to add connection. Please try again.")
-    }
-  }
-
-  const handleDeleteConnection = async (connectionId: string) => {
-    try {
-      await deleteEntityConnection(connectionId)
-      setConnections(connections.filter((conn) => conn.id !== connectionId))
-    } catch (error) {
-      console.error("Failed to delete connection:", error)
-      setError("Failed to delete connection. Please try again.")
-    }
-  }
-
-  const handleAddToCluster = async () => {
-    if (!currentLabel || !selectedClusterId) return
-
-    try {
-      await addEntityToCluster(currentLabel.id, selectedClusterId, clusterSimilarityScore)
-
-      // Update the current label with the new cluster ID
-      const updatedLabel = {
-        ...currentLabel,
-        clusterIds: [...(currentLabel.clusterIds || []), selectedClusterId],
-      }
-
-      setLabels(labels.map((label) => (label.id === currentLabel.id ? updatedLabel : label)))
-      setCurrentLabel(updatedLabel)
-      setIsClusterDialogOpen(false)
-      setSelectedClusterId("")
-      setClusterSimilarityScore(0.7)
-    } catch (error) {
-      console.error("Failed to add entity to cluster:", error)
-      setError("Failed to add entity to cluster. Please try again.")
-    }
-  }
-
-  const handleRemoveFromCluster = async (clusterId: string) => {
-    if (!currentLabel) return
-
-    try {
-      await removeEntityFromCluster(currentLabel.id, clusterId)
-
-      // Update the current label by removing the cluster ID
-      const updatedLabel = {
-        ...currentLabel,
-        clusterIds: (currentLabel.clusterIds || []).filter((id) => id !== clusterId),
-      }
-
-      setLabels(labels.map((label) => (label.id === currentLabel.id ? updatedLabel : label)))
-      setCurrentLabel(updatedLabel)
-    } catch (error) {
-      console.error("Failed to remove entity from cluster:", error)
-      setError("Failed to remove entity from cluster. Please try again.")
-    }
-  }
-
   const openEditDialog = (label: EntityLabel) => {
     setCurrentLabel(label)
     setFormData({
@@ -442,23 +360,6 @@ export function EntityLabelManagement({
   const openDeleteDialog = (label: EntityLabel) => {
     setCurrentLabel(label)
     setIsDeleteDialogOpen(true)
-  }
-
-  const openConnectionDialog = (label: EntityLabel) => {
-    setCurrentLabel(label)
-    setConnectionFormData({
-      sourceEntityId: label.id,
-      targetEntityId: "",
-      relationshipType: "related",
-      strength: 0.5,
-      evidence: "",
-    })
-    setIsConnectionDialogOpen(true)
-  }
-
-  const openClusterDialog = (label: EntityLabel) => {
-    setCurrentLabel(label)
-    setIsClusterDialogOpen(true)
   }
 
   const resetForm = () => {
@@ -556,25 +457,6 @@ export function EntityLabelManagement({
     }
   }
 
-  const getRelationshipTypeLabel = (type: string) => {
-    switch (type) {
-      case "controls":
-        return "Controls"
-      case "owned_by":
-        return "Owned By"
-      case "related":
-        return "Related"
-      case "interacts_with":
-        return "Interacts With"
-      case "funds":
-        return "Funds"
-      case "receives_from":
-        return "Receives From"
-      default:
-        return type
-    }
-  }
-
   return (
     <div className="space-y-6">
       {error && (
@@ -635,7 +517,6 @@ export function EntityLabelManagement({
                 <TableHead className="cursor-pointer" onClick={() => handleSort("riskScore")}>
                   Risk {sortConfig.key === "riskScore" && (sortConfig.direction === "ascending" ? "↑" : "↓")}
                 </TableHead>
-                <TableHead>Clusters</TableHead>
                 <TableHead className="cursor-pointer" onClick={() => handleSort("createdAt")}>
                   Date Added {sortConfig.key === "createdAt" && (sortConfig.direction === "ascending" ? "↑" : "↓")}
                 </TableHead>
@@ -645,13 +526,13 @@ export function EntityLabelManagement({
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={walletAddress ? 9 : 10} className="h-24 text-center">
+                  <TableCell colSpan={walletAddress ? 8 : 9} className="h-24 text-center">
                     Loading entity labels...
                   </TableCell>
                 </TableRow>
               ) : filteredLabels.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={walletAddress ? 9 : 10} className="h-24 text-center">
+                  <TableCell colSpan={walletAddress ? 8 : 9} className="h-24 text-center">
                     No entity labels found.
                   </TableCell>
                 </TableRow>
@@ -684,29 +565,12 @@ export function EntityLabelManagement({
                         <Badge className={`${getRiskColor(label.riskScore)} text-white`}>{label.riskScore}</Badge>
                       )}
                     </TableCell>
-                    <TableCell>
-                      {label.clusterIds && label.clusterIds.length > 0 ? (
-                        <Badge variant="outline" className="bg-background/50">
-                          {label.clusterIds.length}
-                        </Badge>
-                      ) : (
-                        <span className="text-muted-foreground text-sm">None</span>
-                      )}
-                    </TableCell>
                     <TableCell>{new Date(label.createdAt).toLocaleDateString()}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
                         <Button variant="ghost" size="icon" onClick={() => openEditDialog(label)}>
                           <Pencil className="h-4 w-4" />
                           <span className="sr-only">Edit</span>
-                        </Button>
-                        <Button variant="ghost" size="icon" onClick={() => openConnectionDialog(label)}>
-                          <Link className="h-4 w-4" />
-                          <span className="sr-only">Connections</span>
-                        </Button>
-                        <Button variant="ghost" size="icon" onClick={() => openClusterDialog(label)}>
-                          <Network className="h-4 w-4" />
-                          <span className="sr-only">Clusters</span>
                         </Button>
                         <Button variant="ghost" size="icon" onClick={() => openDeleteDialog(label)}>
                           <Trash2 className="h-4 w-4" />
@@ -1084,304 +948,6 @@ export function EntityLabelManagement({
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {/* Connection Dialog */}
-      <Dialog open={isConnectionDialogOpen} onOpenChange={setIsConnectionDialogOpen}>
-        <DialogContent className="sm:max-w-[500px] bg-card/95 backdrop-blur-lg">
-          <DialogHeader>
-            <DialogTitle>Add Entity Connection</DialogTitle>
-            <DialogDescription>
-              Create a connection between this entity and another entity to establish relationships.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="source-entity" className="text-right">
-                Source Entity
-              </Label>
-              <div className="col-span-3">
-                <p className="text-sm font-medium">{currentLabel?.label}</p>
-                <p className="text-xs text-muted-foreground">{currentLabel?.address}</p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="target-entity" className="text-right">
-                Target Entity
-              </Label>
-              <Select
-                value={connectionFormData.targetEntityId}
-                onValueChange={(value) => setConnectionFormData({ ...connectionFormData, targetEntityId: value })}
-              >
-                <SelectTrigger className="col-span-3" id="target-entity">
-                  <SelectValue placeholder="Select a target entity" />
-                </SelectTrigger>
-                <SelectContent>
-                  {labels
-                    .filter((label) => label.id !== currentLabel?.id)
-                    .map((label) => (
-                      <SelectItem key={label.id} value={label.id}>
-                        {label.label} ({label.address.slice(0, 4)}...{label.address.slice(-4)})
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="relationship-type" className="text-right">
-                Relationship
-              </Label>
-              <Select
-                value={connectionFormData.relationshipType}
-                onValueChange={(value) => setConnectionFormData({ ...connectionFormData, relationshipType: value })}
-              >
-                <SelectTrigger className="col-span-3" id="relationship-type">
-                  <SelectValue placeholder="Select a relationship type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="controls">Controls</SelectItem>
-                  <SelectItem value="owned_by">Owned By</SelectItem>
-                  <SelectItem value="related">Related</SelectItem>
-                  <SelectItem value="interacts_with">Interacts With</SelectItem>
-                  <SelectItem value="funds">Funds</SelectItem>
-                  <SelectItem value="receives_from">Receives From</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="connection-strength" className="text-right">
-                Strength
-              </Label>
-              <div className="col-span-3 flex items-center gap-4">
-                <Slider
-                  id="connection-strength"
-                  min={0}
-                  max={1}
-                  step={0.1}
-                  value={[connectionFormData.strength]}
-                  onValueChange={(value) => setConnectionFormData({ ...connectionFormData, strength: value[0] })}
-                  className="flex-1"
-                />
-                <span className="w-12 text-center">{(connectionFormData.strength * 100).toFixed(0)}%</span>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-4 items-start gap-4">
-              <Label htmlFor="connection-evidence" className="text-right pt-2">
-                Evidence
-              </Label>
-              <Textarea
-                id="connection-evidence"
-                value={connectionFormData.evidence}
-                onChange={(e) => setConnectionFormData({ ...connectionFormData, evidence: e.target.value })}
-                className="col-span-3"
-                placeholder="Evidence supporting this connection (e.g., transaction hashes, patterns)"
-                rows={3}
-              />
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsConnectionDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleAddConnection}>Create Connection</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Cluster Dialog */}
-      <Dialog open={isClusterDialogOpen} onOpenChange={setIsClusterDialogOpen}>
-        <DialogContent className="sm:max-w-[500px] bg-card/95 backdrop-blur-lg">
-          <DialogHeader>
-            <DialogTitle>Entity Clusters</DialogTitle>
-            <DialogDescription>
-              Manage cluster memberships for this entity. Clusters group similar entities based on behavior patterns.
-            </DialogDescription>
-          </DialogHeader>
-
-          <Tabs defaultValue="add" className="mt-4">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="add">Add to Cluster</TabsTrigger>
-              <TabsTrigger value="current">Current Clusters</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="add" className="space-y-4 py-4">
-              <div className="grid gap-4">
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="cluster-id" className="text-right">
-                    Cluster
-                  </Label>
-                  <Select value={selectedClusterId} onValueChange={setSelectedClusterId}>
-                    <SelectTrigger className="col-span-3" id="cluster-id">
-                      <SelectValue placeholder="Select a cluster" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {clusters.map((cluster) => (
-                        <SelectItem key={cluster.id} value={cluster.id}>
-                          {cluster.name} ({cluster.category})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="similarity-score" className="text-right">
-                    Similarity
-                  </Label>
-                  <div className="col-span-3 flex items-center gap-4">
-                    <Slider
-                      id="similarity-score"
-                      min={0}
-                      max={1}
-                      step={0.1}
-                      value={[clusterSimilarityScore]}
-                      onValueChange={(value) => setClusterSimilarityScore(value[0])}
-                      className="flex-1"
-                    />
-                    <span className="w-12 text-center">{(clusterSimilarityScore * 100).toFixed(0)}%</span>
-                  </div>
-                </div>
-              </div>
-
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setIsClusterDialogOpen(false)}>
-                  Cancel
-                </Button>
-                <Button onClick={handleAddToCluster} disabled={!selectedClusterId}>
-                  Add to Cluster
-                </Button>
-              </DialogFooter>
-            </TabsContent>
-
-            <TabsContent value="current" className="space-y-4 py-4">
-              {currentLabel?.clusterIds && currentLabel.clusterIds.length > 0 ? (
-                <div className="space-y-4">
-                  {currentLabel.clusterIds.map((clusterId) => {
-                    const cluster = clusters.find((c) => c.id === clusterId)
-                    return cluster ? (
-                      <div key={clusterId} className="flex items-center justify-between p-2 border rounded-md">
-                        <div>
-                          <p className="font-medium">{cluster.name}</p>
-                          <div className="flex items-center gap-2 mt-1">
-                            <Badge className={`${getCategoryColor(cluster.category)} text-white`}>
-                              {cluster.category}
-                            </Badge>
-                            <Badge variant="outline">{cluster.memberCount} members</Badge>
-                            {cluster.riskScore !== undefined && (
-                              <Badge className={`${getRiskColor(cluster.riskScore)} text-white`}>
-                                Risk: {cluster.riskScore}
-                              </Badge>
-                            )}
-                          </div>
-                        </div>
-                        <Button variant="ghost" size="sm" onClick={() => handleRemoveFromCluster(clusterId)}>
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Remove
-                        </Button>
-                      </div>
-                    ) : null
-                  })}
-                </div>
-              ) : (
-                <div className="text-center py-4 text-muted-foreground">
-                  This entity is not a member of any clusters.
-                </div>
-              )}
-            </TabsContent>
-          </Tabs>
-        </DialogContent>
-      </Dialog>
-
-      {/* Entity Connections Section */}
-      {currentLabel && connections.length > 0 && (
-        <Card className="mt-6">
-          <CardHeader>
-            <CardTitle>Entity Connections for {currentLabel.label}</CardTitle>
-            <CardDescription>Connections between this entity and other entities in the system.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Relationship</TableHead>
-                  <TableHead>Connected Entity</TableHead>
-                  <TableHead>Strength</TableHead>
-                  <TableHead>Evidence</TableHead>
-                  <TableHead>Created</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {connections.map((connection) => {
-                  const isSource = connection.sourceEntityId === currentLabel.id
-                  const connectedEntityId = isSource ? connection.targetEntityId : connection.sourceEntityId
-                  const connectedEntity = labels.find((label) => label.id === connectedEntityId)
-
-                  return (
-                    <TableRow key={connection.id}>
-                      <TableCell>
-                        {isSource
-                          ? getRelationshipTypeLabel(connection.relationshipType)
-                          : getRelationshipTypeLabel(
-                              connection.relationshipType === "controls"
-                                ? "owned_by"
-                                : connection.relationshipType === "owned_by"
-                                  ? "controls"
-                                  : connection.relationshipType === "funds"
-                                    ? "receives_from"
-                                    : connection.relationshipType === "receives_from"
-                                      ? "funds"
-                                      : connection.relationshipType,
-                            )}
-                      </TableCell>
-                      <TableCell>
-                        {connectedEntity ? (
-                          <div>
-                            <p className="font-medium">{connectedEntity.label}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {connectedEntity.address.slice(0, 4)}...{connectedEntity.address.slice(-4)}
-                            </p>
-                          </div>
-                        ) : (
-                          <span className="text-muted-foreground">Unknown entity</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <div className="w-full bg-secondary h-2 rounded-full overflow-hidden">
-                          <div className="bg-primary h-full" style={{ width: `${connection.strength * 100}%` }} />
-                        </div>
-                        <span className="text-xs">{(connection.strength * 100).toFixed(0)}%</span>
-                      </TableCell>
-                      <TableCell>
-                        {connection.evidence ? (
-                          <span className="text-sm">
-                            {connection.evidence.slice(0, 50)}
-                            {connection.evidence.length > 50 ? "..." : ""}
-                          </span>
-                        ) : (
-                          <span className="text-muted-foreground text-sm">No evidence provided</span>
-                        )}
-                      </TableCell>
-                      <TableCell>{new Date(connection.createdAt).toLocaleDateString()}</TableCell>
-                      <TableCell className="text-right">
-                        <Button variant="ghost" size="sm" onClick={() => handleDeleteConnection(connection.id)}>
-                          <Trash2 className="h-4 w-4" />
-                          <span className="sr-only">Delete</span>
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  )
-                })}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-      )}
     </div>
   )
 }

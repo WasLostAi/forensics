@@ -8,92 +8,37 @@ interface Investigation {
   addresses?: string[]
   tags?: string[]
   created_by?: string
-  created_at?: string
-  updated_at?: string
 }
 
-// Update the fetchInvestigations function to handle errors better and provide fallback data
-
-// Replace the fetchInvestigations function with this improved version:
 export async function fetchInvestigations(): Promise<Investigation[]> {
   try {
     const { data, error } = await supabase.from("investigations").select("*").order("created_at", { ascending: false })
 
     if (error) {
-      console.warn("Error fetching investigations:", error)
-
-      // Return mock data instead of throwing an error
-      return getMockInvestigations()
+      console.error("Error fetching investigations:", error)
+      throw error
     }
 
     return data
   } catch (error) {
-    console.warn("Failed to fetch investigations:", error)
-
-    // Return mock data on any error
-    return getMockInvestigations()
+    console.error("Failed to fetch investigations:", error)
+    throw error
   }
 }
 
-// Add this helper function to provide mock data
-function getMockInvestigations(): Investigation[] {
-  return [
-    {
-      id: "1",
-      title: "Suspicious Exchange Activity",
-      description: "Investigation into unusual transaction patterns from Binance hot wallet",
-      status: "open",
-      addresses: ["14FUT96s9swbmH7ZjpDvfEDywnAYy9zaNhv4HvB8F7oA"],
-      tags: ["exchange", "high-volume", "suspicious"],
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      created_by: null,
-    },
-    {
-      id: "2",
-      title: "Potential Rugpull Analysis",
-      description: "Tracking fund movements from suspected rugpull token",
-      status: "open",
-      addresses: ["Rug9PulL5X8sMzMR6LSuuBJ5oAbJyC41GrYuczs4LRH"],
-      tags: ["token", "rugpull", "high-risk"],
-      created_at: new Date(Date.now() - 86400000).toISOString(),
-      updated_at: new Date(Date.now() - 86400000).toISOString(),
-      created_by: null,
-    },
-    {
-      id: "3",
-      title: "Cross-Chain Fund Tracking",
-      description: "Following funds transferred between Solana and Ethereum via bridges",
-      status: "in-progress",
-      addresses: ["BridgeXYZ123SolanaToEthereumTransferWalletAddress"],
-      tags: ["cross-chain", "bridge", "medium-risk"],
-      created_at: new Date(Date.now() - 172800000).toISOString(),
-      updated_at: new Date(Date.now() - 86400000).toISOString(),
-      created_by: null,
-    },
-  ]
-}
-
-// Also update the other functions to use mock data as fallback
 export async function fetchInvestigation(id: string): Promise<Investigation> {
   try {
     const { data, error } = await supabase.from("investigations").select("*").eq("id", id).single()
 
     if (error) {
-      console.warn("Error fetching investigation:", error)
-      // Return a mock investigation that matches the ID
-      const mockInvestigations = getMockInvestigations()
-      const mockInvestigation = mockInvestigations.find((inv) => inv.id === id)
-      if (mockInvestigation) return mockInvestigation
-
-      // If no matching ID, return the first mock investigation
-      return mockInvestigations[0]
+      console.error("Error fetching investigation:", error)
+      throw error
     }
 
     return data
   } catch (error) {
-    console.warn("Failed to fetch investigation:", error)
-    return getMockInvestigations()[0]
+    console.error("Failed to fetch investigation:", error)
+    throw error
   }
 }
 
@@ -113,36 +58,14 @@ export async function createInvestigation(investigation: Investigation): Promise
       .single()
 
     if (error) {
-      console.warn("Error creating investigation:", error)
-      // Return a mock created investigation
-      return {
-        id: Math.random().toString(36).substring(2, 9),
-        title: investigation.title,
-        description: investigation.description || "",
-        status: investigation.status || "open",
-        addresses: investigation.addresses || [],
-        tags: investigation.tags || [],
-        created_by: investigation.created_by,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      }
+      console.error("Error creating investigation:", error)
+      throw error
     }
 
     return data
   } catch (error) {
-    console.warn("Failed to create investigation:", error)
-    // Return a mock created investigation
-    return {
-      id: Math.random().toString(36).substring(2, 9),
-      title: investigation.title,
-      description: investigation.description || "",
-      status: investigation.status || "open",
-      addresses: investigation.addresses || [],
-      tags: investigation.tags || [],
-      created_by: investigation.created_by,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    }
+    console.error("Failed to create investigation:", error)
+    throw error
   }
 }
 

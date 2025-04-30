@@ -1,5 +1,7 @@
 "use client"
 
+import type React from "react"
+
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import {
@@ -9,220 +11,234 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog"
-import { Checkbox } from "@/components/ui/checkbox"
+import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { Download, FileJson, FileText, Table, Share2 } from "lucide-react"
-import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Download, FileText, FileSpreadsheet, Share2 } from "lucide-react"
+import { jsPDF } from "jspdf"
+import html2canvas from "html2canvas"
 
 interface ExportReportProps {
   walletAddress: string
-  transactionData: any
-  flowData: any
-  entityData: any
-  riskData: any
+  reportRef: React.RefObject<HTMLDivElement>
 }
 
-export function ExportReport({ walletAddress, transactionData, flowData, entityData, riskData }: ExportReportProps) {
-  const [isDialogOpen, setIsDialogOpen] = useState(false)
-  const [exportFormat, setExportFormat] = useState<"json" | "csv" | "pdf">("json")
+export function ExportReport({ walletAddress, reportRef }: ExportReportProps) {
+  const [exportFormat, setExportFormat] = useState<"pdf" | "csv">("pdf")
+  const [reportName, setReportName] = useState(`Solana Wallet Analysis - ${walletAddress.substring(0, 8)}`)
+  const [includeWalletOverview, setIncludeWalletOverview] = useState(true)
+  const [includeTransactionFlow, setIncludeTransactionFlow] = useState(true)
+  const [includeFundingSources, setIncludeFundingSources] = useState(true)
+  const [includeTransactions, setIncludeTransactions] = useState(true)
+  const [includeClusters, setIncludeClusters] = useState(true)
+  const [includeEntityLabels, setIncludeEntityLabels] = useState(true)
   const [isExporting, setIsExporting] = useState(false)
-  const [exportError, setExportError] = useState<string | null>(null)
-  const [exportSuccess, setExportSuccess] = useState(false)
-  const [selectedSections, setSelectedSections] = useState({
-    transactions: true,
-    flow: true,
-    entities: true,
-    risk: true,
-  })
 
   const handleExport = async () => {
+    if (!reportRef.current) return
+
     setIsExporting(true)
-    setExportError(null)
-    setExportSuccess(false)
 
     try {
-      // Prepare the data to export based on selected sections
-      const exportData: any = {
-        walletAddress,
-        exportDate: new Date().toISOString(),
-      }
+      if (exportFormat === "pdf") {
+        // Export as PDF
+        const canvas = await html2canvas(reportRef.current, {
+          scale: 2,
+          logging: false,
+          useCORS: true,
+        })
 
-      if (selectedSections.transactions) {
-        exportData.transactions = transactionData
-      }
+        const imgData = canvas.toDataURL("image/png")
+        const pdf = new jsPDF({
+          orientation: "portrait",
+          unit: "px",
+          format: [canvas.width / 2, canvas.height / 2],
+        })
 
-      if (selectedSections.flow) {
-        exportData.flow = flowData
-      }
+        pdf.addImage(imgData, "PNG", 0, 0, canvas.width / 2, canvas.height / 2)
+        pdf.save(`${reportName}.pdf`)
+      } else {
+        // Export as CSV
+        // In a real implementation, this would extract data and format as CSV
+        const csvContent = generateCsvContent(walletAddress)
+        const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" })
+        const link = document.createElement("a")
+        const url = URL.createObjectURL(blob)
 
-      if (selectedSections.entities) {
-        exportData.entities = entityData
+        link.setAttribute("href", url)
+        link.setAttribute("download", `${reportName}.csv`)
+        link.style.visibility = "hidden"
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
       }
-
-      if (selectedSections.risk) {
-        exportData.risk = riskData
-      }
-
-      // Export based on selected format
-      if (exportFormat === "json") {
-        await exportAsJson(exportData)
-      } else if (exportFormat === "csv") {
-        await exportAsCsv(exportData)
-      } else if (exportFormat === "pdf") {
-        await exportAsPdf(exportData)
-      }
-
-      setExportSuccess(true)
     } catch (error) {
       console.error("Export failed:", error)
-      setExportError("Failed to export data. Please try again.")
     } finally {
       setIsExporting(false)
     }
   }
 
-  const exportAsJson = async (data: any) => {
-    // Create a JSON blob and download it
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement("a")
-    a.href = url
-    a.download = `wallet-analysis-${walletAddress.substring(0, 8)}.json`
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    URL.revokeObjectURL(url)
-  }
-
-  const exportAsCsv = async (data: any) => {
-    // This is a simplified implementation
-    // In a real app, you would convert the data to CSV format
-    alert("CSV export not implemented yet")
-  }
-
-  const exportAsPdf = async (data: any) => {
-    // This is a simplified implementation
-    // In a real app, you would generate a PDF
-    alert("PDF export not implemented yet")
+  // Mock function to generate CSV content
+  const generateCsvContent = (address: string) => {
+    return `Wallet Address,Transaction Count,Balance,Risk Score
+${address},287,145.72,12
+`
   }
 
   return (
-    <>
-      <Button onClick={() => setIsDialogOpen(true)} variant="outline" className="gap-2">
-        <Download className="h-4 w-4" />
-        Export Report
-      </Button>
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button variant="outline" className="gap-2">
+          <Download className="h-4 w-4" />
+          Export
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Export Report</DialogTitle>
+          <DialogDescription>Export your analysis as a PDF report or CSV file.</DialogDescription>
+        </DialogHeader>
 
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Export Analysis Report</DialogTitle>
-            <DialogDescription>
-              Export your wallet analysis data in various formats for offline use or sharing.
-            </DialogDescription>
-          </DialogHeader>
+        <Tabs defaultValue="pdf" onValueChange={(value) => setExportFormat(value as "pdf" | "csv")}>
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="pdf" className="flex items-center gap-2">
+              <FileText className="h-4 w-4" />
+              PDF Report
+            </TabsTrigger>
+            <TabsTrigger value="csv" className="flex items-center gap-2">
+              <FileSpreadsheet className="h-4 w-4" />
+              CSV Data
+            </TabsTrigger>
+          </TabsList>
 
-          <div className="space-y-4 py-4">
+          <TabsContent value="pdf" className="space-y-4 pt-4">
             <div className="space-y-2">
-              <h3 className="text-sm font-medium">Include Sections</h3>
-              <div className="space-y-2">
+              <Label htmlFor="report-name">Report Name</Label>
+              <Input id="report-name" value={reportName} onChange={(e) => setReportName(e.target.value)} />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Include Sections</Label>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="wallet-overview"
+                    checked={includeWalletOverview}
+                    onCheckedChange={(checked) => setIncludeWalletOverview(checked as boolean)}
+                  />
+                  <Label htmlFor="wallet-overview">Wallet Overview</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="transaction-flow"
+                    checked={includeTransactionFlow}
+                    onCheckedChange={(checked) => setIncludeTransactionFlow(checked as boolean)}
+                  />
+                  <Label htmlFor="transaction-flow">Transaction Flow</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="funding-sources"
+                    checked={includeFundingSources}
+                    onCheckedChange={(checked) => setIncludeFundingSources(checked as boolean)}
+                  />
+                  <Label htmlFor="funding-sources">Funding Sources</Label>
+                </div>
                 <div className="flex items-center space-x-2">
                   <Checkbox
                     id="transactions"
-                    checked={selectedSections.transactions}
-                    onCheckedChange={(checked) => setSelectedSections({ ...selectedSections, transactions: !!checked })}
+                    checked={includeTransactions}
+                    onCheckedChange={(checked) => setIncludeTransactions(checked as boolean)}
                   />
-                  <Label htmlFor="transactions">Transaction History</Label>
+                  <Label htmlFor="transactions">Transactions</Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <Checkbox
-                    id="flow"
-                    checked={selectedSections.flow}
-                    onCheckedChange={(checked) => setSelectedSections({ ...selectedSections, flow: !!checked })}
+                    id="clusters"
+                    checked={includeClusters}
+                    onCheckedChange={(checked) => setIncludeClusters(checked as boolean)}
                   />
-                  <Label htmlFor="flow">Transaction Flow</Label>
+                  <Label htmlFor="clusters">Transaction Clusters</Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <Checkbox
-                    id="entities"
-                    checked={selectedSections.entities}
-                    onCheckedChange={(checked) => setSelectedSections({ ...selectedSections, entities: !!checked })}
+                    id="entity-labels"
+                    checked={includeEntityLabels}
+                    onCheckedChange={(checked) => setIncludeEntityLabels(checked as boolean)}
                   />
-                  <Label htmlFor="entities">Entity Labels</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="risk"
-                    checked={selectedSections.risk}
-                    onCheckedChange={(checked) => setSelectedSections({ ...selectedSections, risk: !!checked })}
-                  />
-                  <Label htmlFor="risk">Risk Analysis</Label>
+                  <Label htmlFor="entity-labels">Entity Labels</Label>
                 </div>
               </div>
             </div>
+          </TabsContent>
+
+          <TabsContent value="csv" className="space-y-4 pt-4">
+            <div className="space-y-2">
+              <Label htmlFor="csv-name">File Name</Label>
+              <Input id="csv-name" value={reportName} onChange={(e) => setReportName(e.target.value)} />
+            </div>
 
             <div className="space-y-2">
-              <h3 className="text-sm font-medium">Export Format</h3>
-              <RadioGroup
-                value={exportFormat}
-                onValueChange={(value) => setExportFormat(value as "json" | "csv" | "pdf")}
-                className="flex flex-col space-y-1"
-              >
+              <Label>Include Data</Label>
+              <div className="grid grid-cols-2 gap-2">
                 <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="json" id="json" />
-                  <Label htmlFor="json" className="flex items-center gap-2">
-                    <FileJson className="h-4 w-4" />
-                    JSON (Complete data)
-                  </Label>
+                  <Checkbox
+                    id="csv-wallet-overview"
+                    checked={includeWalletOverview}
+                    onCheckedChange={(checked) => setIncludeWalletOverview(checked as boolean)}
+                  />
+                  <Label htmlFor="csv-wallet-overview">Wallet Data</Label>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="csv" id="csv" />
-                  <Label htmlFor="csv" className="flex items-center gap-2">
-                    <Table className="h-4 w-4" />
-                    CSV (Spreadsheet-friendly)
-                  </Label>
+                  <Checkbox
+                    id="csv-transactions"
+                    checked={includeTransactions}
+                    onCheckedChange={(checked) => setIncludeTransactions(checked as boolean)}
+                  />
+                  <Label htmlFor="csv-transactions">Transactions</Label>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="pdf" id="pdf" />
-                  <Label htmlFor="pdf" className="flex items-center gap-2">
-                    <FileText className="h-4 w-4" />
-                    PDF Report
-                  </Label>
+                  <Checkbox
+                    id="csv-funding-sources"
+                    checked={includeFundingSources}
+                    onCheckedChange={(checked) => setIncludeFundingSources(checked as boolean)}
+                  />
+                  <Label htmlFor="csv-funding-sources">Funding Sources</Label>
                 </div>
-              </RadioGroup>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="csv-entity-labels"
+                    checked={includeEntityLabels}
+                    onCheckedChange={(checked) => setIncludeEntityLabels(checked as boolean)}
+                  />
+                  <Label htmlFor="csv-entity-labels">Entity Labels</Label>
+                </div>
+              </div>
             </div>
+          </TabsContent>
+        </Tabs>
 
-            {exportError && (
-              <Alert variant="destructive">
-                <AlertDescription>{exportError}</AlertDescription>
-              </Alert>
+        <DialogFooter>
+          <Button variant="outline" type="button">
+            <Share2 className="mr-2 h-4 w-4" />
+            Share
+          </Button>
+          <Button onClick={handleExport} disabled={isExporting}>
+            {isExporting ? (
+              "Exporting..."
+            ) : (
+              <>
+                <Download className="mr-2 h-4 w-4" />
+                Export {exportFormat.toUpperCase()}
+              </>
             )}
-
-            {exportSuccess && (
-              <Alert variant="success">
-                <AlertDescription>Export completed successfully!</AlertDescription>
-              </Alert>
-            )}
-          </div>
-
-          <DialogFooter className="flex justify-between sm:justify-between">
-            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-              Cancel
-            </Button>
-            <div className="flex gap-2">
-              <Button variant="outline" className="gap-2">
-                <Share2 className="h-4 w-4" />
-                Share
-              </Button>
-              <Button onClick={handleExport} disabled={isExporting}>
-                {isExporting ? "Exporting..." : "Export"}
-              </Button>
-            </div>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </>
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   )
 }

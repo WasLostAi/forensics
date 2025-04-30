@@ -67,297 +67,166 @@ export function identifyCriticalPaths(data: TransactionFlowData, criticalThresho
 }
 
 /**
- * Analyzes the funding sources for a wallet
+ * Analyzes transaction patterns to identify clusters
  */
-export function analyzeFundingSources(flowData: TransactionFlowData, walletAddress: string) {
-  // Extract incoming transactions to the wallet
-  const incomingTransactions = flowData.links.filter((link) => link.target === walletAddress)
-
-  if (incomingTransactions.length === 0) {
-    return {
-      sources: [],
-      totalIncoming: 0,
-      largestSource: null,
-    }
+export function identifyTransactionClusters(data: TransactionFlowData): any[] {
+  if (!data || !data.nodes || !data.links || data.links.length === 0) {
+    return []
   }
-
-  // Group by source address
-  const sourceMap = new Map()
-  let totalIncoming = 0
-
-  for (const tx of incomingTransactions) {
-    totalIncoming += tx.value
-
-    if (!sourceMap.has(tx.source)) {
-      // Find node info for this source
-      const nodeInfo = flowData.nodes.find((node) => node.id === tx.source)
-
-      sourceMap.set(tx.source, {
-        address: tx.source,
-        label: nodeInfo?.label || "Unknown Wallet",
-        amount: tx.value,
-        transactions: [tx],
-        isHighRisk: nodeInfo?.group === 4, // Assuming group 4 is high risk
-      })
-    } else {
-      const source = sourceMap.get(tx.source)
-      source.amount += tx.value
-      source.transactions.push(tx)
-    }
-  }
-
-  // Convert to array and calculate percentages
-  const sources = Array.from(sourceMap.values()).map((source) => ({
-    ...source,
-    percentage: (source.amount / totalIncoming) * 100,
-  }))
-
-  // Sort by amount (descending)
-  sources.sort((a, b) => b.amount - a.amount)
-
-  return {
-    sources,
-    totalIncoming,
-    largestSource: sources[0] || null,
-  }
-}
-
-/**
- * Identifies clusters of related transactions
- */
-export function identifyTransactionClusters(flowData: TransactionFlowData) {
-  // This is a simplified implementation
-  // A real implementation would use more sophisticated clustering algorithms
 
   const clusters = []
 
-  // 1. Look for circular patterns (A -> B -> C -> A)
-  const circularPatterns = findCircularPatterns(flowData)
-  if (circularPatterns.length > 0) {
-    clusters.push({
-      id: "cluster1",
-      name: "Circular Transactions",
-      type: "circular-pattern",
-      wallets: circularPatterns[0].wallets,
-      transactions: circularPatterns[0].transactions.length,
-      volume: circularPatterns[0].totalValue,
-      timeframe: getTimeframeString(circularPatterns[0].startTime, circularPatterns[0].endTime),
-      risk: "high",
-    })
-  }
+  // Time-based clustering
+  const timeBasedClusters = identifyTimeBasedClusters(data.links)
+  clusters.push(...timeBasedClusters)
 
-  // 2. Look for time-based clusters (multiple transactions in short time)
-  const timeBasedClusters = findTimeBasedClusters(flowData)
-  if (timeBasedClusters.length > 0) {
-    clusters.push({
-      id: "cluster2",
-      name: "Rapid Succession Transactions",
-      type: "time-based",
-      wallets: timeBasedClusters[0].wallets,
-      transactions: timeBasedClusters[0].transactions.length,
-      volume: timeBasedClusters[0].totalValue,
-      timeframe: getTimeframeString(timeBasedClusters[0].startTime, timeBasedClusters[0].endTime),
-      risk: "medium",
-    })
-  }
+  // Value-based clustering
+  const valueBasedClusters = identifyValueBasedClusters(data.links)
+  clusters.push(...valueBasedClusters)
 
-  // 3. Look for value-based clusters (similar transaction amounts)
-  const valueBasedClusters = findValueBasedClusters(flowData)
-  if (valueBasedClusters.length > 0) {
-    clusters.push({
-      id: "cluster3",
-      name: "Similar Value Transfers",
-      type: "value-based",
-      wallets: valueBasedClusters[0].wallets,
-      transactions: valueBasedClusters[0].transactions.length,
-      volume: valueBasedClusters[0].totalValue,
-      timeframe: getTimeframeString(valueBasedClusters[0].startTime, valueBasedClusters[0].endTime),
-      risk: "low",
-    })
-  }
+  // Pattern-based clustering (e.g., circular transactions)
+  const patternClusters = identifyPatternClusters(data)
+  clusters.push(...patternClusters)
 
   return clusters
 }
 
-// Helper function to find circular transaction patterns
-function findCircularPatterns(flowData: TransactionFlowData) {
-  const patterns = []
+/**
+ * Identifies clusters of transactions that occurred close together in time
+ */
+function identifyTimeBasedClusters(links: any[]): any[] {
+  // Sort links by timestamp
+  const sortedLinks = [...links].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
 
-  // This is a simplified implementation
-  // A real implementation would use graph algorithms to detect cycles
-
-  // For now, just check if there are any A -> B -> A patterns
-  const walletMap = new Map()
-
-  for (const link of flowData.links) {
-    const key = `${link.source}-${link.target}`
-    walletMap.set(key, link)
-
-    // Check if there's a reverse link
-    const reverseKey = `${link.target}-${link.source}`
-    if (walletMap.has(reverseKey)) {
-      // Found a circular pattern
-      const wallets = [link.source, link.target]
-      const transactions = [link, walletMap.get(reverseKey)]
-      const totalValue = transactions.reduce((sum, tx) => sum + tx.value, 0)
-
-      // Get timeframe
-      const timestamps = transactions.map((tx) => new Date(tx.timestamp).getTime())
-      const startTime = new Date(Math.min(...timestamps))
-      const endTime = new Date(Math.max(...timestamps))
-
-      patterns.push({
-        wallets,
-        transactions,
-        totalValue,
-        startTime,
-        endTime,
-      })
-    }
-  }
-
-  return patterns
-}
-
-// Helper function to find time-based clusters
-function findTimeBasedClusters(flowData: TransactionFlowData) {
   const clusters = []
+  let currentCluster = { transactions: [sortedLinks[0]], timeframe: "", wallets: new Set() }
 
-  // Sort transactions by timestamp
-  const sortedLinks = [...flowData.links].sort(
-    (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
-  )
-
-  if (sortedLinks.length < 3) return clusters
-
-  // Look for transactions that happen within a short time window (1 hour)
-  const timeWindow = 60 * 60 * 1000 // 1 hour in milliseconds
-  let currentCluster = {
-    wallets: new Set<string>(),
-    transactions: [sortedLinks[0]],
-    totalValue: sortedLinks[0].value,
-    startTime: new Date(sortedLinks[0].timestamp),
-    endTime: new Date(sortedLinks[0].timestamp),
-  }
-
+  // Add source and target to wallets set
   currentCluster.wallets.add(sortedLinks[0].source)
   currentCluster.wallets.add(sortedLinks[0].target)
 
-  for (let i = 1; i < sortedLinks.length; i++) {
-    const currentTx = sortedLinks[i]
-    const currentTime = new Date(currentTx.timestamp).getTime()
-    const clusterEndTime = currentCluster.endTime.getTime()
+  // Time window for clustering (5 minutes in milliseconds)
+  const timeWindow = 5 * 60 * 1000
 
-    if (currentTime - clusterEndTime <= timeWindow) {
+  for (let i = 1; i < sortedLinks.length; i++) {
+    const prevTime = new Date(sortedLinks[i - 1].timestamp).getTime()
+    const currTime = new Date(sortedLinks[i].timestamp).getTime()
+
+    if (currTime - prevTime <= timeWindow) {
       // Add to current cluster
-      currentCluster.transactions.push(currentTx)
-      currentCluster.totalValue += currentTx.value
-      currentCluster.endTime = new Date(currentTx.timestamp)
-      currentCluster.wallets.add(currentTx.source)
-      currentCluster.wallets.add(currentTx.target)
+      currentCluster.transactions.push(sortedLinks[i])
+      currentCluster.wallets.add(sortedLinks[i].source)
+      currentCluster.wallets.add(sortedLinks[i].target)
     } else {
-      // If current cluster has at least 3 transactions, save it
-      if (currentCluster.transactions.length >= 3) {
+      // Finalize current cluster if it has multiple transactions
+      if (currentCluster.transactions.length > 1) {
+        const startTime = new Date(currentCluster.transactions[0].timestamp)
+        const endTime = new Date(currentCluster.transactions[currentCluster.transactions.length - 1].timestamp)
+
+        currentCluster.timeframe = `${startTime.toLocaleString()} to ${endTime.toLocaleString()}`
         clusters.push({
-          wallets: Array.from(currentCluster.wallets),
+          id: `time-cluster-${clusters.length}`,
+          name: `Time-based Cluster ${clusters.length + 1}`,
           transactions: currentCluster.transactions,
-          totalValue: currentCluster.totalValue,
-          startTime: currentCluster.startTime,
-          endTime: currentCluster.endTime,
+          wallets: Array.from(currentCluster.wallets),
+          timeframe: currentCluster.timeframe,
+          type: "time-based",
+          risk: currentCluster.transactions.some((tx) => tx.isCritical) ? "high" : "low",
         })
       }
 
       // Start a new cluster
       currentCluster = {
-        wallets: new Set<string>([currentTx.source, currentTx.target]),
-        transactions: [currentTx],
-        totalValue: currentTx.value,
-        startTime: new Date(currentTx.timestamp),
-        endTime: new Date(currentTx.timestamp),
+        transactions: [sortedLinks[i]],
+        timeframe: "",
+        wallets: new Set([sortedLinks[i].source, sortedLinks[i].target]),
       }
     }
   }
 
   // Check the last cluster
-  if (currentCluster.transactions.length >= 3) {
+  if (currentCluster.transactions.length > 1) {
+    const startTime = new Date(currentCluster.transactions[0].timestamp)
+    const endTime = new Date(currentCluster.transactions[currentCluster.transactions.length - 1].timestamp)
+
+    currentCluster.timeframe = `${startTime.toLocaleString()} to ${endTime.toLocaleString()}`
     clusters.push({
-      wallets: Array.from(currentCluster.wallets),
+      id: `time-cluster-${clusters.length}`,
+      name: `Time-based Cluster ${clusters.length + 1}`,
       transactions: currentCluster.transactions,
-      totalValue: currentCluster.totalValue,
-      startTime: currentCluster.startTime,
-      endTime: currentCluster.endTime,
+      wallets: Array.from(currentCluster.wallets),
+      timeframe: currentCluster.timeframe,
+      type: "time-based",
+      risk: currentCluster.transactions.some((tx) => tx.isCritical) ? "high" : "low",
     })
   }
 
   return clusters
 }
 
-// Helper function to find value-based clusters
-function findValueBasedClusters(flowData: TransactionFlowData) {
+/**
+ * Identifies clusters of transactions with similar values
+ */
+function identifyValueBasedClusters(links: any[]): any[] {
+  // Sort links by value
+  const sortedLinks = [...links].sort((a, b) => a.value - b.value)
+
   const clusters = []
+  let currentCluster = { transactions: [sortedLinks[0]], wallets: new Set() }
 
-  // Group transactions by similar values (within 10% of each other)
-  const valueGroups = new Map()
+  // Add source and target to wallets set
+  currentCluster.wallets.add(sortedLinks[0].source)
+  currentCluster.wallets.add(sortedLinks[0].target)
 
-  for (const link of flowData.links) {
-    let foundGroup = false
+  // Value similarity threshold (10%)
+  const valueSimilarityThreshold = 0.1
 
-    for (const [groupValue, group] of valueGroups.entries()) {
-      // Check if this transaction is within 10% of the group value
-      if (Math.abs(link.value - groupValue) / groupValue <= 0.1) {
-        group.transactions.push(link)
-        group.totalValue += link.value
-        group.wallets.add(link.source)
-        group.wallets.add(link.target)
+  for (let i = 1; i < sortedLinks.length; i++) {
+    const prevValue = sortedLinks[i - 1].value
+    const currValue = sortedLinks[i].value
 
-        // Update timeframe
-        const txTime = new Date(link.timestamp)
-        if (txTime < group.startTime) group.startTime = txTime
-        if (txTime > group.endTime) group.endTime = txTime
-
-        foundGroup = true
-        break
+    // Check if values are similar (within threshold percentage)
+    if (Math.abs(currValue - prevValue) / prevValue <= valueSimilarityThreshold) {
+      // Add to current cluster
+      currentCluster.transactions.push(sortedLinks[i])
+      currentCluster.wallets.add(sortedLinks[i].source)
+      currentCluster.wallets.add(sortedLinks[i].target)
+    } else {
+      // Finalize current cluster if it has multiple transactions
+      if (currentCluster.transactions.length > 1) {
+        clusters.push({
+          id: `value-cluster-${clusters.length}`,
+          name: `Similar Value Cluster ${clusters.length + 1}`,
+          transactions: currentCluster.transactions,
+          wallets: Array.from(currentCluster.wallets),
+          value: currentCluster.transactions[0].value.toFixed(2),
+          type: "value-based",
+          risk: "medium",
+        })
       }
-    }
 
-    if (!foundGroup) {
-      // Create a new group
-      valueGroups.set(link.value, {
-        wallets: new Set<string>([link.source, link.target]),
-        transactions: [link],
-        totalValue: link.value,
-        startTime: new Date(link.timestamp),
-        endTime: new Date(link.timestamp),
-      })
+      // Start a new cluster
+      currentCluster = {
+        transactions: [sortedLinks[i]],
+        wallets: new Set([sortedLinks[i].source, sortedLinks[i].target]),
+      }
     }
   }
 
-  // Convert groups to clusters (only if they have at least 3 transactions)
-  for (const group of valueGroups.values()) {
-    if (group.transactions.length >= 3) {
-      clusters.push({
-        wallets: Array.from(group.wallets),
-        transactions: group.transactions,
-        totalValue: group.totalValue,
-        startTime: group.startTime,
-        endTime: group.endTime,
-      })
-    }
+  // Check the last cluster
+  if (currentCluster.transactions.length > 1) {
+    clusters.push({
+      id: `value-cluster-${clusters.length}`,
+      name: `Similar Value Cluster ${clusters.length + 1}`,
+      transactions: currentCluster.transactions,
+      wallets: Array.from(currentCluster.wallets),
+      value: currentCluster.transactions[0].value.toFixed(2),
+      type: "value-based",
+      risk: "medium",
+    })
   }
 
   return clusters
-}
-
-// Helper function to format timeframe string
-function getTimeframeString(startTime: Date, endTime: Date): string {
-  const startStr = startTime.toISOString().split("T")[0]
-  const endStr = endTime.toISOString().split("T")[0]
-
-  if (startStr === endStr) {
-    return startStr
-  }
-
-  return `${startStr} to ${endStr}`
 }
 
 /**
@@ -377,7 +246,7 @@ function identifyPatternClusters(data: TransactionFlowData): any[] {
   }
 
   // Find circular patterns (A -> B -> C -> A)
-  const circularPatterns = findCircularPatternsOld(graph)
+  const circularPatterns = findCircularPatterns(graph)
 
   // Create clusters from circular patterns
   for (let i = 0; i < circularPatterns.length; i++) {
@@ -412,7 +281,7 @@ function identifyPatternClusters(data: TransactionFlowData): any[] {
 /**
  * Finds circular patterns in a directed graph
  */
-function findCircularPatternsOld(graph: Map<string, string[]>): string[][] {
+function findCircularPatterns(graph: Map<string, string[]>): string[][] {
   const patterns: string[][] = []
   const visited = new Set<string>()
 
@@ -454,5 +323,58 @@ function dfs(
     } else if (!visited.has(neighbor)) {
       dfs(start, neighbor, [...path], visited, graph, patterns, depth + 1)
     }
+  }
+}
+
+/**
+ * Analyzes the funding sources for a wallet
+ */
+export function analyzeFundingSources(data: TransactionFlowData, walletAddress: string): any {
+  if (!data || !data.links || data.links.length === 0) {
+    return {
+      sources: [],
+      totalIncoming: 0,
+      largestSource: null,
+    }
+  }
+
+  // Get all incoming transactions to the wallet
+  const incomingTransactions = data.links.filter((link) => link.target === walletAddress)
+
+  // Group by source
+  const sourceMap = new Map<string, number>()
+
+  for (const tx of incomingTransactions) {
+    const currentAmount = sourceMap.get(tx.source) || 0
+    sourceMap.set(tx.source, currentAmount + tx.value)
+  }
+
+  // Convert to array and sort by amount
+  const sources = Array.from(sourceMap.entries())
+    .map(([address, amount]) => {
+      // Find node info for this address
+      const nodeInfo = data.nodes.find((node) => node.id === address) || { label: address }
+
+      return {
+        address,
+        label: nodeInfo.label || address,
+        amount,
+        percentage: 0, // Will calculate after getting total
+        isHighRisk: nodeInfo.isHighRisk || false,
+      }
+    })
+    .sort((a, b) => b.amount - a.amount)
+
+  // Calculate total and percentages
+  const totalIncoming = sources.reduce((sum, source) => sum + source.amount, 0)
+
+  sources.forEach((source) => {
+    source.percentage = totalIncoming > 0 ? (source.amount / totalIncoming) * 100 : 0
+  })
+
+  return {
+    sources,
+    totalIncoming,
+    largestSource: sources.length > 0 ? sources[0] : null,
   }
 }
