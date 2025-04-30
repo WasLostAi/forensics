@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { ModeToggle } from "@/components/mode-toggle"
@@ -48,9 +48,6 @@ import { ConnectionStatus } from "@/components/connection-status"
 import { MockModeBanner } from "@/components/mock-mode-banner"
 import { AuthCheck } from "@/components/auth-check"
 
-// Admin wallet address
-const ADMIN_WALLET = "AuwUfiwsXA6VibDjR579HWLhDUUoa5s6T7i7KPyLUa9F"
-
 // Enable mock mode for development/preview environments
 const ENABLE_MOCK_MODE = true // Set to false in production
 
@@ -62,20 +59,9 @@ export function AppLayout({ children }: AppLayoutProps) {
   const pathname = usePathname()
   const isMobile = useMediaQuery("(max-width: 768px)")
   const [searchQuery, setSearchQuery] = useState("")
-  const [walletAddress, setWalletAddress] = useState<string | null>(null)
-  const [isAdmin, setIsAdmin] = useState(false)
 
   // Check if current route is login
   const isLoginRoute = pathname === "/login"
-
-  useEffect(() => {
-    // Get wallet address from localStorage
-    const storedWalletAddress = localStorage.getItem("wallet_address")
-    setWalletAddress(storedWalletAddress)
-
-    // Check if admin
-    setIsAdmin(storedWalletAddress === ADMIN_WALLET)
-  }, [])
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
@@ -85,9 +71,16 @@ export function AppLayout({ children }: AppLayoutProps) {
     }
   }
 
+  // Get user info from localStorage
+  const userEmail = typeof window !== "undefined" ? localStorage.getItem("user_email") : null
+  const walletAddress = typeof window !== "undefined" ? localStorage.getItem("wallet_address") : null
+  const userRole = typeof window !== "undefined" ? localStorage.getItem("user_role") : null
+  const isAdmin = userRole === "admin"
+
   // Handle logout
   const handleLogout = () => {
     localStorage.removeItem("auth_token")
+    localStorage.removeItem("user_email")
     localStorage.removeItem("wallet_address")
     localStorage.removeItem("user_role")
     window.location.href = "/login"
@@ -289,16 +282,19 @@ export function AppLayout({ children }: AppLayoutProps) {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <Avatar>
-                      <AvatarFallback>{walletAddress ? "W" : "U"}</AvatarFallback>
+                      <AvatarFallback>
+                        {userEmail ? userEmail.charAt(0).toUpperCase() : walletAddress ? "W" : "U"}
+                      </AvatarFallback>
                     </Avatar>
                     <div>
                       <p className="text-sm font-medium">
-                        {walletAddress
-                          ? `${walletAddress.substring(0, 4)}...${walletAddress.substring(walletAddress.length - 4)}`
-                          : "User"}
+                        {userEmail ||
+                          (walletAddress
+                            ? `${walletAddress.substring(0, 4)}...${walletAddress.substring(walletAddress.length - 4)}`
+                            : "User")}
                         {isAdmin && <span className="ml-1 text-amber-500">(Admin)</span>}
                       </p>
-                      <p className="text-xs text-muted-foreground">{isAdmin ? "Admin" : "User"}</p>
+                      <p className="text-xs text-muted-foreground">{userRole || "User"}</p>
                     </div>
                   </div>
                   <Button variant="ghost" size="icon" onClick={handleLogout}>

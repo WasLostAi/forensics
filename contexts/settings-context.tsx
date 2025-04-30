@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { createContext, useContext, useState, useEffect, useCallback } from "react"
+import { createContext, useContext, useState, useEffect } from "react"
 import { validateArkhamCredentials } from "@/lib/arkham-api"
 
 type SettingsContextType = {
@@ -21,30 +21,31 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   const [isCheckingApi, setIsCheckingApi] = useState(false)
 
   // Function to check API credentials
-  const checkApiCredentials = useCallback(async () => {
+  const checkApiCredentials = async () => {
     try {
       setIsCheckingApi(true)
       setApiStatus("checking")
-      setApiError(null)
 
-      // Check if API keys are configured in environment variables
-      const response = await fetch("/api/arkham/validate")
-      const data = await response.json()
+      const result = await validateArkhamCredentials()
 
-      if (data.valid) {
+      if (result.success) {
         setApiStatus("valid")
+        setApiError(null)
+      } else if (result.networkError) {
+        setApiStatus("network-error")
+        setApiError(result.error || "Network connection error")
       } else {
         setApiStatus("invalid")
-        setApiError(data.error || "Invalid API credentials")
+        setApiError(result.error || "Invalid API credentials")
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error checking API credentials:", error)
-      setApiStatus("network-error")
-      setApiError("Network error. Please try again.")
+      setApiStatus("invalid")
+      setApiError(error.message || "Unknown error")
     } finally {
       setIsCheckingApi(false)
     }
-  }, [])
+  }
 
   // Check API credentials on mount, but with a delay to not block initial render
   // and wrapped in a try-catch to prevent app crashes
@@ -66,7 +67,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     }, 1000)
 
     return () => clearTimeout(timer)
-  }, [checkApiCredentials])
+  }, [])
 
   return (
     <SettingsContext.Provider
