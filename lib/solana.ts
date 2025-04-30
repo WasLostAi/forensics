@@ -6,9 +6,6 @@ import type { Transaction } from "@/types/transaction"
 let connection: Connection | null = null
 let PublicKey: typeof PublicKeyType | null = null
 
-// Enable mock mode for development/preview environments
-const ENABLE_MOCK_MODE = true // Set to false in production
-
 // Mock data for development/preview
 const mockData = {
   balance: 145.72,
@@ -35,10 +32,13 @@ const mockData = {
   },
 }
 
+// Mock mode is now controlled via the settings context
+// and passed as a parameter to each function
+
 // Initialize Solana connection with the provided RPC URL
-export async function getConnection(rpcUrl?: string) {
-  // If mock mode is enabled, don't attempt to connect to an RPC
-  if (ENABLE_MOCK_MODE) {
+export async function getConnection(rpcUrl?: string, forceMock = false) {
+  // If mock mode is enabled or forced, don't attempt to connect to an RPC
+  if (forceMock) {
     console.log("Mock mode enabled - not connecting to RPC")
     return null
   }
@@ -82,9 +82,9 @@ export async function getConnection(rpcUrl?: string) {
 }
 
 // Helper function to check connection status
-export async function isConnected(rpcUrl?: string) {
-  // If mock mode is enabled, pretend we're connected
-  if (ENABLE_MOCK_MODE) {
+export async function isConnected(rpcUrl?: string, forceMock = false) {
+  // If mock mode is enabled or forced, pretend we're connected
+  if (forceMock) {
     return true
   }
 
@@ -101,9 +101,9 @@ export async function isConnected(rpcUrl?: string) {
   }
 }
 
-export async function getWalletBalance(address: string, rpcUrl?: string): Promise<number> {
+export async function getWalletBalance(address: string, rpcUrl?: string, useMockData = false): Promise<number> {
   // If mock mode is enabled, return mock data
-  if (ENABLE_MOCK_MODE) {
+  if (useMockData) {
     return mockData.balance
   }
 
@@ -124,9 +124,10 @@ export async function getWalletBalance(address: string, rpcUrl?: string): Promis
   }
 }
 
-export async function getTransactionCount(address: string, rpcUrl?: string): Promise<number> {
+// Update other functions to accept useMockData parameter
+export async function getTransactionCount(address: string, rpcUrl?: string, useMockData = false): Promise<number> {
   // If mock mode is enabled, return mock data
-  if (ENABLE_MOCK_MODE) {
+  if (useMockData) {
     return mockData.transactionCount
   }
 
@@ -150,6 +151,7 @@ export async function getTransactionCount(address: string, rpcUrl?: string): Pro
 export async function getWalletActivity(
   address: string,
   rpcUrl?: string,
+  useMockData = false,
 ): Promise<{
   first: string
   last: string
@@ -157,7 +159,7 @@ export async function getWalletActivity(
   outgoing: number
 }> {
   // If mock mode is enabled, return mock data
-  if (ENABLE_MOCK_MODE) {
+  if (useMockData) {
     return {
       first: mockData.firstActivity,
       last: mockData.lastActivity,
@@ -238,9 +240,14 @@ export async function getWalletActivity(
   }
 }
 
-export async function getTransactionHistory(address: string, limit = 20, rpcUrl?: string): Promise<Transaction[]> {
+export async function getTransactionHistory(
+  address: string,
+  limit = 20,
+  rpcUrl?: string,
+  useMockData = false,
+): Promise<Transaction[]> {
   // If mock mode is enabled, return mock data
-  if (ENABLE_MOCK_MODE) {
+  if (useMockData) {
     return mockData.transactions
   }
 
@@ -361,9 +368,10 @@ export async function getTransactionFlowData(
   date?: Date,
   minAmount = 0,
   rpcUrl?: string,
+  useMockData = false,
 ): Promise<any> {
   // If mock mode is enabled, return mock data
-  if (ENABLE_MOCK_MODE) {
+  if (useMockData) {
     // Replace the main wallet ID with the actual wallet address
     const mockFlowData = JSON.parse(JSON.stringify(mockData.flowData))
     mockFlowData.nodes[0].id = walletAddress
@@ -472,9 +480,9 @@ export async function getTransactionFlowData(
 }
 
 // Token analysis functions
-export async function getTokenHolders(tokenAddress: string, rpcUrl?: string): Promise<string[]> {
+export async function getTokenHolders(tokenAddress: string, rpcUrl?: string, useMockData = false): Promise<string[]> {
   // If mock mode is enabled, return mock data
-  if (ENABLE_MOCK_MODE) {
+  if (useMockData) {
     return ["wallet1", "wallet2", "wallet3", "wallet4", "wallet5"]
   }
 
@@ -494,9 +502,13 @@ export async function getTokenHolders(tokenAddress: string, rpcUrl?: string): Pr
   }
 }
 
-export async function detectWalletClusters(tokenAddress: string, rpcUrl?: string): Promise<boolean> {
+export async function detectWalletClusters(
+  tokenAddress: string,
+  rpcUrl?: string,
+  useMockData = false,
+): Promise<boolean> {
   // If mock mode is enabled, return mock data
-  if (ENABLE_MOCK_MODE) {
+  if (useMockData) {
     return Math.random() > 0.5
   }
 
@@ -505,9 +517,9 @@ export async function detectWalletClusters(tokenAddress: string, rpcUrl?: string
   return false
 }
 
-export async function detectBundledRug(tokenAddress: string, rpcUrl?: string): Promise<boolean> {
+export async function detectBundledRug(tokenAddress: string, rpcUrl?: string, useMockData = false): Promise<boolean> {
   // If mock mode is enabled, return mock data
-  if (ENABLE_MOCK_MODE) {
+  if (useMockData) {
     return Math.random() > 0.7
   }
 
@@ -516,9 +528,13 @@ export async function detectBundledRug(tokenAddress: string, rpcUrl?: string): P
   return false
 }
 
-export async function checkLiquidityRemoval(poolAddress: string, rpcUrl?: string): Promise<boolean> {
+export async function checkLiquidityRemoval(
+  poolAddress: string,
+  rpcUrl?: string,
+  useMockData = false,
+): Promise<boolean> {
   // If mock mode is enabled, return mock data
-  if (ENABLE_MOCK_MODE) {
+  if (useMockData) {
     return Math.random() > 0.8
   }
 

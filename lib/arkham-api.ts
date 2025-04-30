@@ -12,7 +12,7 @@ export async function validateArkhamCredentials(): Promise<{
 
     try {
       const response = await fetch("/api/arkham/validate", {
-        method: "GET",
+        method: "POST",
         signal: controller.signal,
       })
 
@@ -27,7 +27,7 @@ export async function validateArkhamCredentials(): Promise<{
 
       const data = await response.json()
       return {
-        success: data.valid === true,
+        success: data.success === true,
         error: data.error,
       }
     } catch (fetchError) {
@@ -64,7 +64,7 @@ export async function fetchArkhamTransactionFlow(
     const timeoutId = setTimeout(() => controller.abort(), 8000) // 8 second timeout
 
     try {
-      const response = await fetch(`/api/arkham?address=${encodeURIComponent(walletAddress)}`, {
+      const response = await fetch(`/api/arkham/flow?address=${encodeURIComponent(walletAddress)}`, {
         signal: controller.signal,
       })
 
@@ -95,6 +95,64 @@ export async function fetchArkhamTransactionFlow(
     // Fall back to mock data on any error
     console.log("Falling back to mock data due to error")
     return generateMockTransactionFlowData(walletAddress)
+  }
+}
+
+// Function to fetch entity information from Arkham
+export async function fetchArkhamEntityInfo(walletAddress: string, useMockData = false): Promise<any> {
+  if (useMockData) {
+    return {
+      name: "Unknown Entity",
+      category: "individual",
+      tags: [],
+      riskScore: 50,
+    }
+  }
+
+  try {
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 5000)
+
+    try {
+      const response = await fetch(`/api/arkham/entity?address=${encodeURIComponent(walletAddress)}`, {
+        signal: controller.signal,
+      })
+
+      clearTimeout(timeoutId)
+
+      if (!response.ok) {
+        throw new Error(`API returned status ${response.status}`)
+      }
+
+      const result = await response.json()
+
+      if (!result.success) {
+        throw new Error(result.error || "Unknown error")
+      }
+
+      return result.data
+    } catch (fetchError) {
+      clearTimeout(timeoutId)
+      console.error("Network error fetching entity info:", fetchError)
+
+      // Return default entity info
+      return {
+        name: "Unknown Entity",
+        category: "individual",
+        tags: [],
+        riskScore: 50,
+      }
+    }
+  } catch (error) {
+    console.error("Error fetching entity info:", error)
+
+    // Return default entity info
+    return {
+      name: "Unknown Entity",
+      category: "individual",
+      tags: [],
+      riskScore: 50,
+    }
   }
 }
 

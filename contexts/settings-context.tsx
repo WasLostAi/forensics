@@ -11,6 +11,10 @@ type SettingsContextType = {
   apiError: string | null
   checkApiCredentials: () => Promise<void>
   isCheckingApi: boolean
+  rpcUrl: string
+  setRpcUrl: (url: string) => void
+  selectedRpcName: string
+  setSelectedRpcName: (name: string) => void
 }
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined)
@@ -22,6 +26,8 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   )
   const [apiError, setApiError] = useState<string | null>(null)
   const [isCheckingApi, setIsCheckingApi] = useState(false)
+  const [rpcUrl, setRpcUrl] = useState<string>(process.env.NEXT_PUBLIC_QUICKNODE_RPC_URL || "")
+  const [selectedRpcName, setSelectedRpcName] = useState<string>("QuickNode")
 
   // Function to check API credentials
   const checkApiCredentials = async () => {
@@ -66,6 +72,8 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
       try {
         const settings = JSON.parse(savedSettings)
         setUseMockData(settings.useMockData ?? true)
+        if (settings.rpcUrl) setRpcUrl(settings.rpcUrl)
+        if (settings.selectedRpcName) setSelectedRpcName(settings.selectedRpcName)
       } catch (e) {
         console.error("Error parsing saved settings:", e)
       }
@@ -74,8 +82,15 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
 
   // Save settings to localStorage
   useEffect(() => {
-    localStorage.setItem("solanaForensicsSettings", JSON.stringify({ useMockData }))
-  }, [useMockData])
+    localStorage.setItem(
+      "solanaForensicsSettings",
+      JSON.stringify({
+        useMockData,
+        rpcUrl,
+        selectedRpcName,
+      }),
+    )
+  }, [useMockData, rpcUrl, selectedRpcName])
 
   return (
     <SettingsContext.Provider
@@ -86,6 +101,10 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
         apiError,
         checkApiCredentials,
         isCheckingApi,
+        rpcUrl,
+        setRpcUrl,
+        selectedRpcName,
+        setSelectedRpcName,
       }}
     >
       {children}

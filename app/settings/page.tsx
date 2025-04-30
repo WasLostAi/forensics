@@ -5,6 +5,7 @@ import { Switch } from "@/components/ui/switch"
 import { useSettings } from "@/contexts/settings-context"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { AlertCircle, CheckCircle, RefreshCw, WifiOff } from "lucide-react"
+import { MockModeToggle } from "@/components/mock-mode-toggle"
 
 export default function SettingsPage() {
   const { useMockData, setUseMockData, apiStatus, apiError, checkApiCredentials, isCheckingApi } = useSettings()
@@ -87,6 +88,7 @@ export default function SettingsPage() {
             </div>
           </CardContent>
         </Card>
+        <MockModeToggle />
       </div>
     </div>
   )
