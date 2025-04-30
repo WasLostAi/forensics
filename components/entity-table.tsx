@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -47,8 +47,8 @@ export function EntityTable({ searchFilters = [], onEditEntity }: EntityTablePro
     loadEntities()
   }, [])
 
-  // Filter and search entities
-  useEffect(() => {
+  // Memoize the filter function to prevent infinite loops
+  const filterEntities = useCallback(() => {
     if (!entities.length) return
 
     let result = [...entities]
@@ -197,6 +197,11 @@ export function EntityTable({ searchFilters = [], onEditEntity }: EntityTablePro
 
     setFilteredEntities(result)
   }, [entities, searchFilters, sortConfig])
+
+  // Filter entities when dependencies change
+  useEffect(() => {
+    filterEntities()
+  }, [filterEntities])
 
   async function loadEntities() {
     setIsLoading(true)

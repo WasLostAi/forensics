@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { X, Search, Filter, Save, Clock, Plus, ChevronDown, ChevronUp } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -67,11 +67,16 @@ export function EntityAdvancedSearch({ onSearch, initialFilters = [] }: EntityAd
     }
   }, [])
 
-  // Apply search when filters change
-  useEffect(() => {
+  // Memoize the search callback to prevent infinite loops
+  const handleSearchCallback = useCallback(() => {
     const activeFilters = filters.filter((f) => f.active)
     onSearch(activeFilters)
   }, [filters, onSearch])
+
+  // Apply search when filters change
+  useEffect(() => {
+    handleSearchCallback()
+  }, [handleSearchCallback])
 
   const addFilter = () => {
     const newFilter: EntitySearchFilter = {
@@ -526,7 +531,7 @@ export function EntityAdvancedSearch({ onSearch, initialFilters = [] }: EntityAd
                   const existingFilter = filters.find((f) => f.field === "category" && f.operator === "equals")
                   if (existingFilter) {
                     updateFilter(existingFilter.id, { value })
-                  } else {
+                  } else if (value !== "all") {
                     const newFilter: EntitySearchFilter = {
                       id: `filter-${Date.now()}`,
                       field: "category",
@@ -535,6 +540,9 @@ export function EntityAdvancedSearch({ onSearch, initialFilters = [] }: EntityAd
                       active: true,
                     }
                     setFilters([...filters, newFilter])
+                  } else {
+                    // If "all" is selected, remove any category filter
+                    setFilters(filters.filter((f) => !(f.field === "category" && f.operator === "equals")))
                   }
                 }}
               >
