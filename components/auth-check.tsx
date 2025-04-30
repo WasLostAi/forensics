@@ -3,43 +3,59 @@
 import type React from "react"
 
 import { useEffect, useState } from "react"
-import { useRouter, usePathname } from "next/navigation"
+import { useRouter } from "next/navigation"
+import { supabase } from "@/lib/supabase"
 
-export function AuthCheck({ children }: { children: React.ReactNode }) {
+interface AuthCheckProps {
+  children: React.ReactNode
+}
+
+export function AuthCheck({ children }: AuthCheckProps) {
   const router = useRouter()
-  const pathname = usePathname()
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
 
   useEffect(() => {
-    // Check if user is authenticated
-    const token = localStorage.getItem("auth_token")
+    async function checkAuth() {
+      try {
+        const { data, error } = await supabase.auth.getSession()
 
-    // Public routes that don't require authentication
-    const publicRoutes = ["/login"]
-    const isPublicRoute = publicRoutes.some((route) => pathname?.startsWith(route))
+        if (error) {
+          console.error("Error checking authentication:", error)
+          setIsAuthenticated(false)
+          router.push("/login")
+          return
+        }
 
-    if (!token && !isPublicRoute) {
-      // Redirect to login if not authenticated and not on a public route
-      router.push("/login")
-    } else if (token && isPublicRoute) {
-      // Redirect to home if authenticated and on a public route
-      router.push("/")
-    } else {
-      setIsAuthenticated(!!token)
-      setIsLoading(false)
+        if (data.session) {
+          setIsAuthenticated(true)
+        } else {
+          setIsAuthenticated(false)
+          router.push("/login")
+        }
+      } catch (error) {
+        console.error("Error in auth check:", error)
+        setIsAuthenticated(false)
+        router.push("/login")
+      } finally {
+        setIsLoading(false)
+      }
     }
-  }, [pathname, router])
 
-  // Show loading state
+    checkAuth()
+  }, [router])
+
   if (isLoading) {
     return (
-      <div className="flex h-screen w-full items-center justify-center">
-        <div className="h-16 w-16 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
       </div>
     )
   }
 
-  // If on a public route or authenticated, render children
+  if (!isAuthenticated) {
+    return null
+  }
+
   return <>{children}</>
 }

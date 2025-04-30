@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 
 export async function GET() {
   try {
-    // Check if API keys are configured
+    // Check if API keys are configured in environment variables
     const apiKey = process.env.ARKHAM_API_KEY
     const apiSecret = process.env.ARKHAM_API_SECRET
 
@@ -10,7 +10,7 @@ export async function GET() {
       return NextResponse.json(
         {
           valid: false,
-          error: "API credentials are not configured",
+          error: "API credentials are not configured in environment variables",
         },
         { status: 200 },
       )

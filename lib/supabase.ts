@@ -39,6 +39,7 @@ const createSingletonClient = () => {
         }),
       }),
       auth: {
+        getSession: () => Promise.resolve({ data: { session: null }, error: null }),
         signUp: () => Promise.resolve({ data: null, error: { message: "Mock mode active" } }),
         signIn: () => Promise.resolve({ data: null, error: { message: "Mock mode active" } }),
         signOut: () => Promise.resolve({ error: null }),

@@ -1,124 +1,104 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import Link from "next/link"
-import { ModeToggle } from "@/components/mode-toggle"
+import { usePathname } from "next/navigation"
+import { SolanaLogo } from "./solana-logo"
 import { Button } from "@/components/ui/button"
-import { Search, BarChart2, Network, Tag, Github, Bookmark, User, LogOut, Database, Shield } from "lucide-react"
-import { useAuth } from "@/contexts/auth-context"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+import { ModeToggle } from "./mode-toggle"
+import { SearchForm } from "./search-form"
+import { Menu, X } from "lucide-react"
+
+const navItems = [
+  { name: "Dashboard", href: "/dashboard" },
+  { name: "Wallet Analysis", href: "/wallet" },
+  { name: "Transactions", href: "/transactions" },
+  { name: "Entity Network", href: "/network-explorer" },
+  { name: "Entity Labels", href: "/entities" },
+  { name: "Monitoring", href: "/monitoring" },
+]
 
 export function Navbar() {
-  const { user, signOut, isLoading, isAdmin, walletAddress } = useAuth()
+  const pathname = usePathname()
+  const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [mounted, setMounted] = useState(false)
+
+  // Prevent hydration mismatch
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  if (!mounted) {
+    return null
+  }
 
   return (
-    <header className="border-b">
-      <div className="container mx-auto px-4 py-3 flex items-center justify-between">
-        <Link href="/" className="font-bold text-xl flex items-center gap-2">
-          <Network className="h-5 w-5" />
-          <span>SolanaForensics</span>
-        </Link>
-
-        <nav className="hidden md:flex items-center gap-6">
-          <Link href="/" className="flex items-center gap-2 text-sm font-medium">
-            <Search className="h-4 w-4" />
-            <span>Search</span>
-          </Link>
-          <Link href="/transactions" className="flex items-center gap-2 text-sm font-medium">
-            <BarChart2 className="h-4 w-4" />
-            <span>Transactions</span>
-          </Link>
-          <Link href="/entities/management" className="flex items-center gap-2 text-sm font-medium">
-            <Tag className="h-4 w-4" />
-            <span>Entity Management</span>
-          </Link>
-          <Link href="/network-explorer" className="flex items-center gap-2 text-sm font-medium">
-            <Database className="h-4 w-4" />
-            <span>Network Explorer</span>
-          </Link>
-          <Link href="/investigations" className="flex items-center gap-2 text-sm font-medium">
-            <Bookmark className="h-4 w-4" />
-            <span>Investigations</span>
-          </Link>
-
-          {/* Admin-only navigation item */}
-          {isAdmin() && (
-            <Link href="/admin" className="flex items-center gap-2 text-sm font-medium text-amber-500">
-              <Shield className="h-4 w-4" />
-              <span>Admin Panel</span>
+    <nav className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <div className="container mx-auto px-4">
+        <div className="flex h-16 items-center justify-between">
+          <div className="flex items-center">
+            <Link href="/" className="flex items-center gap-2">
+              <SolanaLogo className="h-8 w-8" />
+              <span className="font-bold text-xl hidden md:inline-block">Solana Forensics</span>
             </Link>
-          )}
-        </nav>
+          </div>
 
-        <div className="flex items-center gap-4">
-          <Link href="https://github.com/username/solana-forensics" target="_blank">
-            <Button variant="outline" size="icon">
-              <Github className="h-4 w-4" />
-              <span className="sr-only">GitHub</span>
+          {/* Desktop navigation */}
+          <div className="hidden md:flex md:items-center md:space-x-4">
+            {navItems.map((item) => (
+              <Link
+                key={item.name}
+                href={item.href}
+                className={`px-3 py-2 text-sm font-medium rounded-md ${
+                  pathname === item.href
+                    ? "bg-primary/10 text-primary"
+                    : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                }`}
+              >
+                {item.name}
+              </Link>
+            ))}
+          </div>
+
+          <div className="hidden md:flex md:items-center md:space-x-4">
+            <SearchForm className="w-64" />
+            <ModeToggle />
+          </div>
+
+          {/* Mobile menu button */}
+          <div className="flex md:hidden">
+            <Button variant="ghost" size="icon" onClick={() => setIsMenuOpen(!isMenuOpen)} aria-label="Toggle menu">
+              {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
             </Button>
-          </Link>
-          <ModeToggle />
-
-          {!isLoading && (
-            <>
-              {user ? (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="icon">
-                      <User className="h-4 w-4" />
-                      <span className="sr-only">User menu</span>
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuLabel>
-                      {user.email}
-                      {walletAddress && (
-                        <div className="text-xs text-muted-foreground mt-1 truncate max-w-[200px]">
-                          {walletAddress}
-                          {isAdmin() && <span className="ml-1 text-amber-500">(Admin)</span>}
-                        </div>
-                      )}
-                    </DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem asChild>
-                      <Link href="/profile">Profile</Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link href="/settings">Settings</Link>
-                    </DropdownMenuItem>
-                    {isAdmin() && (
-                      <>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem asChild>
-                          <Link href="/admin">Admin Panel</Link>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem asChild>
-                          <Link href="/settings/api-keys">API Keys</Link>
-                        </DropdownMenuItem>
-                      </>
-                    )}
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => signOut()}>
-                      <LogOut className="h-4 w-4 mr-2" />
-                      Sign out
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              ) : (
-                <Button asChild>
-                  <Link href="/auth/sign-in">Sign in</Link>
-                </Button>
-              )}
-            </>
-          )}
+          </div>
         </div>
       </div>
-    </header>
+
+      {/* Mobile menu */}
+      {isMenuOpen && (
+        <div className="md:hidden">
+          <div className="space-y-1 px-4 pb-3 pt-2">
+            {navItems.map((item) => (
+              <Link
+                key={item.name}
+                href={item.href}
+                className={`block px-3 py-2 text-base font-medium rounded-md ${
+                  pathname === item.href
+                    ? "bg-primary/10 text-primary"
+                    : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                }`}
+                onClick={() => setIsMenuOpen(false)}
+              >
+                {item.name}
+              </Link>
+            ))}
+            <div className="mt-4 flex items-center justify-between">
+              <SearchForm className="flex-1 mr-2" />
+              <ModeToggle />
+            </div>
+          </div>
+        </div>
+      )}
+    </nav>
   )
 }
