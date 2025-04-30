@@ -1,6 +1,3 @@
-// Import webpack directly
-import webpack from 'webpack';
-
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   eslint: {
@@ -12,7 +9,7 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-  // Webpack configuration to handle Solana dependencies
+  // Simplified webpack configuration
   webpack: (config, { isServer }) => {
     if (!isServer) {
       config.resolve.fallback = {
@@ -30,13 +27,6 @@ const nextConfig = {
         tls: false,
         child_process: false,
       };
-      
-      // Add buffer polyfill using the imported webpack
-      config.plugins.push(
-        new webpack.ProvidePlugin({
-          Buffer: ['buffer', 'Buffer'],
-        })
-      );
     }
     return config;
   },

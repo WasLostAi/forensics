@@ -15,31 +15,6 @@ export interface ICOProject {
   tags: string[]
   riskScore: number
   fundFlow?: FundFlowData
-  relationships?: WalletRelationship
-}
-
-export interface WalletRelationship {
-  nodes: WalletNode[]
-  edges: WalletEdge[]
-}
-
-export interface WalletNode {
-  id: string
-  label: string
-  type: "ico" | "exchange" | "mixer" | "team" | "investor" | "unknown"
-  riskScore: number
-  volume: number
-  isVerified?: boolean
-}
-
-export interface WalletEdge {
-  id: string
-  source: string
-  target: string
-  type: "inflow" | "outflow" | "bidirectional"
-  value: number
-  timestamp: string
-  transactionCount: number
 }
 
 export interface FundFlowData {
@@ -126,4 +101,49 @@ export interface MonitoringAlert {
   data: any
   read: boolean
   archived: boolean
+}
+
+export interface WalletMonitoringConfig {
+  walletAddress: string
+  isEnabled: boolean
+  alertThreshold: number
+  notificationChannels: string[]
+  customRules: string[]
+  tags: string[]
+  notes: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface MixerAnalysisResult {
+  usedMixer: boolean
+  mixerAddresses: string[]
+  volume: number
+  riskScore: number
+}
+
+export interface SniperActivityResult {
+  isSniper: boolean
+  profit: number
+  transactionCount: number
+  successRate: number
+  riskScore: number
+}
+
+export interface RugPullAnalysisResult {
+  isRugPuller: boolean
+  rugPullCount: number
+  riskScore: number
+}
+
+export interface SocialMediaAnalysisResult {
+  twitterMentions: number
+  discordMentions: number
+  telegramMentions: number
+  recentPosts: {
+    platform: string
+    content: string
+    url: string
+    timestamp: string
+  }[]
 }
