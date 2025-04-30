@@ -62,7 +62,8 @@
     "webpack": "latest",
     "@solana/web3.js": "latest",
     "reactflow": "latest",
-    "@tanstack/react-virtual": "latest"
+    "@tanstack/react-virtual": "latest",
+    "react-force-graph-2d": "latest"
   },
   "devDependencies": {
     "@types/node": "^22",

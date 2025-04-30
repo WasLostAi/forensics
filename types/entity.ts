@@ -2,9 +2,9 @@ export interface EntityLabel {
   id: string
   address: string
   label: string
-  category: "exchange" | "individual" | "contract" | "scam" | "mixer" | "other"
+  category: string
   confidence: number
-  source: "user" | "community" | "algorithm" | "database"
+  source: string
   createdAt: string
   updatedAt: string
   verified?: boolean
