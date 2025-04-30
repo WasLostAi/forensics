@@ -1,91 +1,99 @@
 "use client"
 
 import { useState } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import { useAuth } from "@/contexts/auth-context"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { AlertCircle } from "lucide-react"
 
 export function WalletConnect() {
-  const [isConnecting, setIsConnecting] = useState(false)
+  const [walletAddress, setWalletAddress] = useState("")
   const [error, setError] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
   const { signInWithWallet } = useAuth()
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const redirect = searchParams?.get("redirect") || "/dashboard"
 
-  // Function to handle wallet connection
-  const connectWallet = async () => {
-    setIsConnecting(true)
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsLoading(true)
     setError(null)
 
-    try {
-      // Check if Phantom wallet is available
-      const { solana } = window as any
+    if (!walletAddress) {
+      setError("Please enter a wallet address")
+      setIsLoading(false)
+      return
+    }
 
-      if (!solana?.isPhantom) {
-        setError("Phantom wallet not found. Please install Phantom wallet extension.")
-        setIsConnecting(false)
+    try {
+      const { error, success } = await signInWithWallet(walletAddress)
+      
+      if (error) {
+        setError(error.message)
         return
       }
-
-      try {
-        // Connect to wallet
-        const response = await solana.connect()
-        const walletAddress = response.publicKey.toString()
-
-        // Sign in with the wallet address
-        const { error, success } = await signInWithWallet(walletAddress)
-
-        if (!success) {
-          setError(error?.message || "Failed to sign in with wallet")
-        }
-      } catch (err) {
-        console.error("Wallet connection error:", err)
-        setError("Failed to connect to wallet. Please try again.")
+      
+      if (success) {
+        router.push(redirect)
       }
     } catch (err) {
-      console.error("Wallet connection error:", err)
       setError("An unexpected error occurred. Please try again.")
+      console.error(err)
+    } finally {
+      setIsLoading(false)
     }
-
-    setIsConnecting(false)
   }
 
-  // For demo purposes, allow direct sign-in with admin wallet
-  const signInAsAdmin = async () => {
-    setIsConnecting(true)
-    setError(null)
-
-    try {
-      const { error, success } = await signInWithWallet("AuwUfiwsXA6VibDjR579HWLhDUUoa5s6T7i7KPyLUa9F")
-
-      if (!success) {
-        setError(error?.message || "Failed to sign in as admin")
-      }
-    } catch (err) {
-      console.error("Admin sign in error:", err)
-      setError("An unexpected error occurred. Please try again.")
-    }
-
-    setIsConnecting(false)
-  }
-
+  // For demo purposes, we'll use a simple form to enter a wallet address
+  // In a real app, you would integrate with a wallet adapter like Phantom
   return (
     <div className="space-y-4">
       {error && (
         <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
-
-      <Button onClick={connectWallet} className="w-full" disabled={isConnecting} variant="outline">
-        {isConnecting ? "Connecting..." : "Connect Phantom Wallet"}
-      </Button>
-
-      <div className="text-center text-sm text-muted-foreground">
-        <span>For demo purposes: </span>
-        <button onClick={signInAsAdmin} className="text-primary hover:underline" disabled={isConnecting}>
-          Sign in as Admin
-        </button>
+      
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="wallet-address">Solana Wallet Address</Label>
+          <Input
+            id="wallet-address"
+            placeholder="Enter your Solana wallet address"
+            value={walletAddress}
+            onChange={(e) => setWalletAddress(e.target.value)}
+            required
+          />
+          <p className="text-xs text-muted-foreground">
+            For demo purposes only. In a production app, you would connect with a wallet adapter.
+          </p>
+        </div>
+        <Button type="submit" className="w-full" disabled={isLoading}>
+          {isLoading ? "Connecting..." : "Connect Wallet"}
+        </Button>
+      </form>
+      
+      <div className="space-y-4 mt-6">
+        <p className="text-sm text-center text-muted-foreground">Demo wallet addresses:</p>
+        <div className="grid gap-2">
+          <Button 
+            variant="outline" 
+            onClick={() => setWalletAddress("AuwUfiwsXA6VibDjR579HWLhDUUoa5s6T7i7KPyLUa9F")}
+            className="text-xs"
+          >
+            Admin Wallet
+          </Button>
+          <Button 
+            variant="outline" 
+            onClick={() => setWalletAddress("5YNmS1R9nNSCDzb5a7mMJ1dwK9uHeAAF4CerVnZgX37D")}
+            className="text-xs"
+          >
+            User Wallet
+          </Button>
+        </div>
       </div>
     </div>
   )
