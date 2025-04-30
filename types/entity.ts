@@ -11,4 +11,38 @@ export interface EntityLabel {
   riskScore?: number
   tags?: string[]
   notes?: string
+  connections?: EntityConnection[]
+  clusterIds?: string[]
+}
+
+export interface EntityConnection {
+  id: string
+  sourceEntityId: string
+  targetEntityId: string
+  relationshipType: string
+  strength: number
+  evidence: string
+  createdAt: string
+  createdBy: string
+}
+
+export interface EntityClusterMembership {
+  entityId: string
+  clusterId: string
+  similarityScore: number
+  joinedAt: string
+}
+
+export interface EntityCluster {
+  id: string
+  name: string
+  description?: string
+  category: string
+  riskScore: number
+  memberCount: number
+  createdAt: string
+  updatedAt?: string
+  createdBy?: string
+  tags?: string[]
+  behaviorPatterns?: string[]
 }
