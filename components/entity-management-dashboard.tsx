@@ -14,13 +14,24 @@ export function EntityManagementDashboard() {
   const { user, isLoading } = useAuth()
   const router = useRouter()
   const [activeTab, setActiveTab] = useState("labels")
+  const [isMounted, setIsMounted] = useState(false)
+
+  // Set isMounted to true when component mounts
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
 
   // Redirect to sign-in if not authenticated
   useEffect(() => {
-    if (!isLoading && !user) {
+    if (isMounted && !isLoading && !user) {
       router.push("/auth/sign-in")
     }
-  }, [user, isLoading, router])
+  }, [user, isLoading, router, isMounted])
+
+  // Don't render anything on the server or until mounted on the client
+  if (!isMounted) {
+    return null
+  }
 
   if (isLoading) {
     return (

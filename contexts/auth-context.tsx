@@ -1,8 +1,7 @@
 "use client"
 
 import type React from "react"
-
-import { createContext, useContext, useState, useEffect, useCallback } from "react"
+import { useState, useEffect, createContext, useContext, useCallback } from "react"
 
 interface AuthContextType {
   user: any | null
@@ -12,14 +11,30 @@ interface AuthContextType {
   signOut: () => void
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined)
+// Create a default context value
+const defaultContextValue: AuthContextType = {
+  user: null,
+  isLoading: true,
+  isAdmin: () => false,
+  walletAddress: null,
+  signOut: () => {},
+}
+
+const AuthContext = createContext<AuthContextType>(defaultContextValue)
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<any | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [walletAddress, setWalletAddress] = useState<string | null>(null)
+  const [isMounted, setIsMounted] = useState(false)
 
   useEffect(() => {
+    setIsMounted(true)
+  }, [])
+
+  useEffect(() => {
+    if (!isMounted) return
+
     // Check if user is authenticated
     const authToken = localStorage.getItem("auth_token")
     const storedWalletAddress = localStorage.getItem("wallet_address")
@@ -34,23 +49,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     setIsLoading(false)
-  }, [])
+  }, [isMounted])
 
   const signOut = useCallback(() => {
+    if (!isMounted) return
+
     localStorage.removeItem("auth_token")
     localStorage.removeItem("wallet_address")
     localStorage.removeItem("user_role")
     setUser(null)
     setWalletAddress(null)
-  }, [])
+  }, [isMounted])
 
   const isAdmin = useCallback(() => {
     return walletAddress === "AuwUfiwsXA6VibDjR579HWLhDUUoa5s6T7i7KPyLUa9F"
   }, [walletAddress])
 
-  return (
-    <AuthContext.Provider value={{ user, isLoading, isAdmin, walletAddress, signOut }}>{children}</AuthContext.Provider>
-  )
+  const value: AuthContextType = {
+    user,
+    isLoading,
+    isAdmin,
+    walletAddress,
+    signOut,
+  }
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
 
 export function useAuth() {

@@ -1,8 +1,24 @@
 import { supabase } from "./supabase"
 import type { EntityLabel, EntityConnection, EntityCluster } from "@/types/entity"
 
+// Helper function to check if Supabase is properly initialized
+const isSupabaseInitialized = () => {
+  try {
+    // Try to access a property that would be available if Supabase is initialized
+    return !!supabase && !!supabase.from
+  } catch (error) {
+    console.error("Supabase client not properly initialized:", error)
+    return false
+  }
+}
+
 export async function fetchEntityLabelsFromDB(walletAddress?: string): Promise<EntityLabel[]> {
   try {
+    // Check if Supabase is initialized
+    if (!isSupabaseInitialized()) {
+      throw new Error("Supabase client not properly initialized")
+    }
+
     let query = supabase.from("entity_labels").select("*")
 
     if (walletAddress) {
@@ -452,6 +468,11 @@ export async function deleteEntityConnection(id: string): Promise<void> {
 
 export async function getEntityClusters(): Promise<EntityCluster[]> {
   try {
+    // Check if Supabase is initialized
+    if (!isSupabaseInitialized()) {
+      throw new Error("Supabase client not properly initialized")
+    }
+
     const { data, error } = await supabase.from("entity_clusters").select("*")
 
     if (error) {

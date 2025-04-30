@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Plus, Pencil, Trash2, AlertTriangle, Users, Network, ArrowRight } from "lucide-react"
+import { Plus, Pencil, Trash2, AlertTriangle, Users, Network, ArrowRight, AlertCircle } from "lucide-react"
 import {
   Dialog,
   DialogContent,
@@ -27,6 +27,7 @@ import {
   deleteEntityCluster,
   getClusterMembers,
 } from "@/lib/entity-service"
+import { isMockData } from "@/lib/supabase"
 import type { EntityCluster, EntityLabel } from "@/types/entity"
 import Link from "next/link"
 
@@ -115,9 +116,12 @@ export function EntityClusterManagement() {
       const data = await getEntityClusters()
       setClusters(data)
       setFilteredClusters(data)
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to load entity clusters:", error)
-      setError("Failed to load entity clusters. Please try again.")
+      setError(`Failed to load entity clusters: ${error.message || "Unknown error"}`)
+      // Set empty clusters to avoid UI issues
+      setClusters([])
+      setFilteredClusters([])
     } finally {
       setIsLoading(false)
     }
@@ -128,9 +132,10 @@ export function EntityClusterManagement() {
     try {
       const data = await getClusterMembers(clusterId)
       setClusterMembers(data)
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to load cluster members:", error)
-      setError("Failed to load cluster members. Please try again.")
+      setError(`Failed to load cluster members: ${error.message || "Unknown error"}`)
+      setClusterMembers([])
     } finally {
       setIsLoadingMembers(false)
     }
@@ -160,9 +165,9 @@ export function EntityClusterManagement() {
       setClusters([...clusters, newCluster])
       resetForm()
       setIsAddDialogOpen(false)
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to add cluster:", error)
-      setError("Failed to add cluster. Please try again.")
+      setError(`Failed to add cluster: ${error.message || "Unknown error"}`)
     }
   }
 
@@ -193,9 +198,9 @@ export function EntityClusterManagement() {
       resetForm()
       setIsEditDialogOpen(false)
       setCurrentCluster(null)
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to update cluster:", error)
-      setError("Failed to update cluster. Please try again.")
+      setError(`Failed to update cluster: ${error.message || "Unknown error"}`)
     }
   }
 
@@ -207,9 +212,9 @@ export function EntityClusterManagement() {
       setClusters(clusters.filter((cluster) => cluster.id !== currentCluster.id))
       setIsDeleteDialogOpen(false)
       setCurrentCluster(null)
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to delete cluster:", error)
-      setError("Failed to delete cluster. Please try again.")
+      setError(`Failed to delete cluster: ${error.message || "Unknown error"}`)
     }
   }
 
@@ -284,6 +289,17 @@ export function EntityClusterManagement() {
 
   return (
     <div className="space-y-6">
+      {isMockData && (
+        <Alert variant="warning" className="bg-yellow-50 border-yellow-200">
+          <AlertCircle className="h-4 w-4 text-yellow-600" />
+          <AlertTitle className="text-yellow-800">Mock Data Mode</AlertTitle>
+          <AlertDescription className="text-yellow-700">
+            The application is currently using mock data because the Supabase connection is not available or properly
+            configured.
+          </AlertDescription>
+        </Alert>
+      )}
+
       {error && (
         <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
