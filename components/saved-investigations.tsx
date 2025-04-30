@@ -53,16 +53,39 @@ export function SavedInvestigations() {
     // Load investigations from Supabase
     async function loadInvestigations() {
       setIsLoading(true)
-      setError(null)
       try {
         const data = await fetchInvestigations()
         setInvestigations(data)
       } catch (error) {
         console.error("Failed to load investigations:", error)
-        setError("Failed to load investigations. Using sample data instead.")
+        setError("Failed to load investigations")
 
-        // The fetchInvestigations function now returns mock data on error,
-        // so we don't need to set mock data here anymore
+        // Mock data for demo
+        const mockInvestigations: Investigation[] = [
+          {
+            id: "1",
+            title: "Suspicious Exchange Activity",
+            description: "Investigation into unusual transaction patterns from Binance hot wallet",
+            status: "open",
+            addresses: ["14FUT96s9swbmH7ZjpDvfEDywnAYy9zaNhv4HvB8F7oA"],
+            tags: ["exchange", "high-volume", "suspicious"],
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            created_by: null,
+          },
+          {
+            id: "2",
+            title: "Potential Rugpull Analysis",
+            description: "Tracking fund movements from suspected rugpull token",
+            status: "open",
+            addresses: ["Rug9PulL5X8sMzMR6LSuuBJ5oAbJyC41GrYuczs4LRH"],
+            tags: ["token", "rugpull", "high-risk"],
+            created_at: new Date(Date.now() - 86400000).toISOString(),
+            updated_at: new Date(Date.now() - 86400000).toISOString(),
+            created_by: null,
+          },
+        ]
+        setInvestigations(mockInvestigations)
       } finally {
         setIsLoading(false)
       }
@@ -156,9 +179,9 @@ export function SavedInvestigations() {
   return (
     <div className="space-y-4">
       {error && (
-        <Alert variant="warning" className="mb-4">
+        <Alert variant="destructive" className="mb-4">
           <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Note</AlertTitle>
+          <AlertTitle>Error</AlertTitle>
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
