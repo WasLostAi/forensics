@@ -61,7 +61,7 @@ export function EntityManagementDashboard() {
             </Link>
           </Button>
           <Button variant="outline" asChild>
-            <Link href="/entity-network">
+            <Link href="/network-explorer">
               <Database className="mr-2 h-4 w-4" />
               Network
             </Link>

@@ -40,6 +40,7 @@ import {
   Users,
   HelpCircle,
   LogOut,
+  Database,
 } from "lucide-react"
 import { useMediaQuery } from "@/hooks/use-media-query"
 import { SolanaLogo } from "@/components/solana-logo"
@@ -167,16 +168,25 @@ export function AppLayout({ children }: AppLayoutProps) {
                   </SidebarMenuItem>
 
                   <SidebarMenuItem>
-                    <SidebarMenuButton asChild isActive={false}>
-                      <Link href="/wallet?tab=entities">
+                    <SidebarMenuButton asChild isActive={pathname.startsWith("/entities")}>
+                      <Link href="/entities/management">
                         <Tag className="mr-2 h-4 w-4 text-[#9945FF]" />
-                        <span>Entity Labels</span>
+                        <span>Entity Management</span>
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
 
                   <SidebarMenuItem>
-                    <SidebarMenuButton asChild isActive={false}>
+                    <SidebarMenuButton asChild isActive={pathname === "/network-explorer"}>
+                      <Link href="/network-explorer">
+                        <Database className="mr-2 h-4 w-4 text-[#9945FF]" />
+                        <span>Network Explorer</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild isActive={pathname === "/reports"}>
                       <Link href="/reports">
                         <FileText className="mr-2 h-4 w-4" />
                         <span>Reports</span>
@@ -203,8 +213,8 @@ export function AppLayout({ children }: AppLayoutProps) {
               <SidebarGroupContent>
                 <SidebarMenu>
                   <SidebarMenuItem>
-                    <SidebarMenuButton asChild isActive={false}>
-                      <Link href="/investigations">
+                    <SidebarMenuButton asChild isActive={pathname === "/collaborators"}>
+                      <Link href="/collaborators">
                         <Users className="mr-2 h-4 w-4" />
                         <span>Collaborators</span>
                       </Link>

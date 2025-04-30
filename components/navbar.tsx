@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { ModeToggle } from "@/components/mode-toggle"
 import { Button } from "@/components/ui/button"
-import { User, Search, BarChart2, Network, Tag, Github, Bookmark, LogOut } from "lucide-react"
+import { Search, BarChart2, Network, Tag, Github, Bookmark, User, LogOut, Database } from "lucide-react"
 import { useAuth } from "@/contexts/auth-context"
 import {
   DropdownMenu,
@@ -34,17 +34,17 @@ export function Navbar() {
             <BarChart2 className="h-4 w-4" />
             <span>Transactions</span>
           </Link>
-          <Link href="/entities" className="flex items-center gap-2 text-sm font-medium">
+          <Link href="/entities/management" className="flex items-center gap-2 text-sm font-medium">
             <Tag className="h-4 w-4" />
-            <span>Entities</span>
+            <span>Entity Management</span>
+          </Link>
+          <Link href="/network-explorer" className="flex items-center gap-2 text-sm font-medium">
+            <Database className="h-4 w-4" />
+            <span>Network Explorer</span>
           </Link>
           <Link href="/investigations" className="flex items-center gap-2 text-sm font-medium">
             <Bookmark className="h-4 w-4" />
             <span>Investigations</span>
-          </Link>
-          <Link href="/network-explorer" className="flex items-center gap-2 text-sm font-medium">
-            <Network className="h-4 w-4" />
-            <span>Network Explorer</span>
           </Link>
         </nav>
 
