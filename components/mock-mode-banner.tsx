@@ -2,63 +2,50 @@
 
 import { useEffect, useState } from "react"
 import { AlertCircle } from "lucide-react"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { isConnected } from "@/lib/solana"
 import { useSettings } from "@/contexts/settings-context"
 
 export function MockModeBanner() {
-  const [supabaseConnected, setSupabaseConnected] = useState<boolean | null>(null)
-  const [quicknodeConnected, setQuicknodeConnected] = useState<boolean | null>(null)
+  const [showBanner, setShowBanner] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
   const { apiStatus } = useSettings()
 
   useEffect(() => {
-    // Check Supabase connection
-    async function checkSupabase() {
+    const checkConnections = async () => {
       try {
-        const response = await fetch("/api/check-supabase", { method: "POST" })
-        const data = await response.json()
-        setSupabaseConnected(data.success)
+        setIsLoading(true)
+
+        // Check Solana connection
+        const solanaConnected = await isConnected()
+
+        // Show banner if either connection is not valid
+        const shouldShowBanner = !solanaConnected || apiStatus !== "valid"
+        setShowBanner(shouldShowBanner)
       } catch (error) {
-        console.error("Error checking Supabase:", error)
-        setSupabaseConnected(false)
+        console.error("Error checking connections:", error)
+        setShowBanner(true)
+      } finally {
+        setIsLoading(false)
       }
     }
 
-    // Check QuickNode connection
-    async function checkQuicknode() {
-      try {
-        const response = await fetch("/api/check-rpc", { method: "POST" })
-        const data = await response.json()
-        setQuicknodeConnected(data.success)
-      } catch (error) {
-        console.error("Error checking QuickNode:", error)
-        setQuicknodeConnected(false)
-      }
-    }
+    checkConnections()
+  }, [apiStatus])
 
-    checkSupabase()
-    checkQuicknode()
-  }, [])
-
-  // Don't show anything while checking
-  if (supabaseConnected === null || quicknodeConnected === null) {
-    return null
-  }
-
-  // If all connections are good, don't show the banner
-  if (supabaseConnected && quicknodeConnected && apiStatus === "valid") {
+  if (isLoading || !showBanner) {
     return null
   }
 
   return (
-    <Alert variant="warning" className="mb-4">
-      <AlertCircle className="h-4 w-4" />
-      <AlertTitle>Limited Functionality</AlertTitle>
-      <AlertDescription>
-        {!supabaseConnected && "Supabase connection issue. "}
-        {!quicknodeConnected && "QuickNode RPC connection issue. "}
-        {apiStatus !== "valid" && "Arkham API credentials issue. "}
-        Some features may be unavailable or using mock data.
-      </AlertDescription>
-    </Alert>
+    <div className="bg-yellow-900/20 border-yellow-900/30 border text-yellow-500 px-4 py-2 flex items-center text-sm">
+      <AlertCircle className="h-4 w-4 mr-2" />
+      <span>Mock Mode Active</span>
+      <span className="ml-1">
+        You are currently viewing mock data. To see real data, please configure your{" "}
+        {apiStatus !== "valid" ? "Arkham API credentials" : ""}
+        {apiStatus !== "valid" && !isConnected ? " and " : ""}
+        {!isConnected ? "QuickNode RPC URL" : ""} in the settings.
+      </span>
+    </div>
   )
 }
