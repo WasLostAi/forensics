@@ -1,7 +1,3 @@
-"use client"
-
-import { useEffect } from "react"
-import { useRouter } from "next/navigation"
 import { Suspense } from "react"
 import { SearchForm } from "@/components/search-form"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -12,16 +8,6 @@ import { SolanaLogo } from "@/components/solana-logo"
 import { FeatureChecklist } from "@/components/feature-checklist"
 
 export default function Home() {
-  const router = useRouter()
-
-  useEffect(() => {
-    // Check if user is authenticated
-    const token = localStorage.getItem("auth_token")
-    if (!token) {
-      router.push("/login")
-    }
-  }, [router])
-
   return (
     <div className="space-y-8">
       <div>
