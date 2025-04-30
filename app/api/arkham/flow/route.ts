@@ -2,41 +2,54 @@ import { NextResponse } from "next/server"
 import { makeArkhamRequest } from "../route"
 
 export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url)
-  const address = searchParams.get("address")
-
-  if (!address) {
-    return NextResponse.json({
-      success: false,
-      error: "Address parameter is required",
-    })
-  }
-
   try {
+    const { searchParams } = new URL(request.url)
+    const address = searchParams.get("address")
+
+    if (!address) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Address parameter is required",
+        },
+        { status: 400 },
+      )
+    }
+
     // Call Arkham API to get transaction flow data
     // This is a simplified example - the actual Arkham API endpoints may differ
     const result = await makeArkhamRequest(`/v1/address/${address}/transactions`, "GET")
 
     if (result.error) {
-      return NextResponse.json({
-        success: false,
-        error: result.error,
-      })
+      return NextResponse.json(
+        {
+          success: false,
+          error: result.error,
+          networkError: result.networkError || false,
+        },
+        { status: result.networkError ? 503 : 400 },
+      )
     }
 
     // Transform Arkham data to our TransactionFlowData format
     const transformedData = transformArkhamData(result, address)
 
-    return NextResponse.json({
-      success: true,
-      data: transformedData,
-    })
+    return NextResponse.json(
+      {
+        success: true,
+        data: transformedData,
+      },
+      { status: 200 },
+    )
   } catch (error: any) {
     console.error("Error in transaction flow API route:", error)
-    return NextResponse.json({
-      success: false,
-      error: error.message || "Unknown error",
-    })
+    return NextResponse.json(
+      {
+        success: false,
+        error: error.message || "Unknown error",
+      },
+      { status: 500 },
+    )
   }
 }
 
