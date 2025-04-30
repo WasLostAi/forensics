@@ -1,9 +1,11 @@
 "use client"
 
 import type React from "react"
-
 import { useEffect, useState } from "react"
 import { useRouter, usePathname } from "next/navigation"
+
+// Admin wallet address - this is the only wallet that can access admin panel
+const ADMIN_WALLET = "AuwUfiwsXA6VibDjR579HWLhDUUoa5s6T7i7KPyLUa9F"
 
 export function AuthCheck({ children }: { children: React.ReactNode }) {
   const router = useRouter()
@@ -13,20 +15,28 @@ export function AuthCheck({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     // Check if user is authenticated
-    const token = localStorage.getItem("auth_token")
+    const walletAddress = localStorage.getItem("wallet_address")
+    const authToken = localStorage.getItem("auth_token")
 
     // Public routes that don't require authentication
     const publicRoutes = ["/login"]
     const isPublicRoute = publicRoutes.some((route) => pathname?.startsWith(route))
 
-    if (!token && !isPublicRoute) {
+    // Admin routes that require admin wallet
+    const adminRoutes = ["/admin"]
+    const isAdminRoute = adminRoutes.some((route) => pathname?.startsWith(route))
+
+    if (isAdminRoute && walletAddress !== ADMIN_WALLET) {
+      // Redirect to home if trying to access admin route without admin wallet
+      router.push("/")
+      return
+    }
+
+    if (!authToken && !isPublicRoute) {
       // Redirect to login if not authenticated and not on a public route
       router.push("/login")
-    } else if (token && isPublicRoute) {
-      // Redirect to home if authenticated and on a public route
-      router.push("/")
     } else {
-      setIsAuthenticated(!!token)
+      setIsAuthenticated(!!authToken)
       setIsLoading(false)
     }
   }, [pathname, router])
@@ -40,6 +50,6 @@ export function AuthCheck({ children }: { children: React.ReactNode }) {
     )
   }
 
-  // If on a public route or authenticated, render children
+  // Render children if authenticated
   return <>{children}</>
 }
