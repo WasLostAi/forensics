@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { ArrowRight, Shield, TrendingUp, Network, File, AlertTriangle, Tag } from "lucide-react"
 import SearchForm from "@/components/search-form"
-import { FeatureChecklist } from "@/components/feature-checklist"
 
 export default function Home() {
   return (
@@ -203,22 +202,6 @@ export default function Home() {
                 </Button>
               </CardFooter>
             </Card>
-          </div>
-        </div>
-      </section>
-
-      {/* Implementation Status */}
-      <section className="py-12 md:py-16 lg:py-20">
-        <div className="container px-4 md:px-6">
-          <div className="mx-auto flex max-w-[58rem] flex-col items-center justify-center space-y-4 text-center">
-            <h2 className="text-3xl font-bold tracking-tighter md:text-4xl">Development Progress</h2>
-            <p className="max-w-[700px] text-gray-500 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
-              Track our implementation progress as we continue to add features and improve the platform.
-            </p>
-          </div>
-
-          <div className="mx-auto max-w-4xl mt-10">
-            <FeatureChecklist />
           </div>
         </div>
       </section>
