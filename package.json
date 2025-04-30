@@ -62,9 +62,9 @@
     "@solana/web3.js": "latest",
     "reactflow": "latest",
     "@tanstack/react-virtual": "latest",
-    "@supabase/supabase-js": "latest",
     "react-force-graph-2d": "latest",
-    "react-force-graph-3d": "latest"
+    "react-force-graph-3d": "latest",
+    "@supabase/supabase-js": "latest"
   },
   "devDependencies": {
     "@types/node": "^22",
