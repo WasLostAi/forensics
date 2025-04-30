@@ -145,8 +145,8 @@ export async function updateEntityLabel(id: string, updates: Partial<EntityLabel
       updatedAt: data.updated_at,
       verified: data.verified,
       riskScore: data.risk_score || undefined,
-      tags: data.tags || undefined,
-      notes: data.notes || undefined,
+      tags: updates.tags,
+      notes: updates.notes,
     }
   } catch (error) {
     console.error("Failed to update entity label:", error)
@@ -285,6 +285,145 @@ export async function getEntityLabelStats(): Promise<{
         database: 20,
       },
       verified: 35,
+    }
+  }
+}
+
+/**
+ * Retrieves detailed entity information for a specific address
+ */
+export async function getEntityByAddress(address: string): Promise<{
+  entity: EntityLabel | null
+  relatedEntities: EntityLabel[]
+  riskProfile: {
+    score: number
+    factors: Array<{ factor: string; impact: number }>
+  }
+  confidence: number
+}> {
+  try {
+    // First, try to get the entity from our database
+    const { data: entityData, error: entityError } = await supabase
+      .from("entity_labels")
+      .select("*")
+      .eq("address", address)
+      .single()
+
+    if (entityError && entityError.code !== "PGRST116") {
+      console.error("Error fetching entity:", entityError)
+      throw entityError
+    }
+
+    // Convert from DB format to application format if entity exists
+    const entity = entityData
+      ? {
+          id: entityData.id,
+          address: entityData.address,
+          label: entityData.label,
+          category: entityData.category as any,
+          confidence: entityData.confidence,
+          source: entityData.source,
+          createdAt: entityData.created_at,
+          updatedAt: entityData.updated_at,
+          verified: entityData.verified,
+          riskScore: entityData.risk_score || undefined,
+          tags: entityData.tags || undefined,
+          notes: entityData.notes || undefined,
+        }
+      : null
+
+    // Get related entities (entities that have interacted with this address)
+    const { data: relatedData, error: relatedError } = await supabase
+      .from("entity_labels")
+      .select("*")
+      .in("address", function () {
+        // This is a placeholder for a subquery that would get addresses that have interacted with our target address
+        // In a real implementation, this would query a transactions table
+        return this.select("related_address").from("transactions").eq("address", address).limit(10)
+      })
+      .limit(5)
+
+    if (relatedError) {
+      console.error("Error fetching related entities:", relatedError)
+      // Continue with empty related entities rather than failing completely
+    }
+
+    // Convert related entities from DB format
+    const relatedEntities = (relatedData || []).map((item) => ({
+      id: item.id,
+      address: item.address,
+      label: item.label,
+      category: item.category as any,
+      confidence: item.confidence,
+      source: item.source,
+      createdAt: item.created_at,
+      updatedAt: item.updated_at,
+      verified: item.verified,
+      riskScore: item.risk_score || undefined,
+      tags: item.tags || undefined,
+      notes: item.notes || undefined,
+    }))
+
+    // Calculate risk profile
+    const riskFactors: Array<{ factor: string; impact: number }> = []
+    let totalRiskScore = entity?.riskScore || 50
+
+    // Add risk factors based on entity category
+    if (entity?.category === "mixer") {
+      riskFactors.push({ factor: "Mixer service", impact: 30 })
+      totalRiskScore = Math.min(100, totalRiskScore + 30)
+    } else if (entity?.category === "scam") {
+      riskFactors.push({ factor: "Known scam", impact: 40 })
+      totalRiskScore = Math.min(100, totalRiskScore + 40)
+    } else if (entity?.category === "exchange") {
+      riskFactors.push({ factor: "Exchange service", impact: -10 })
+      totalRiskScore = Math.max(0, totalRiskScore - 10)
+    }
+
+    // Add risk factors based on tags
+    if (entity?.tags?.includes("sanctioned")) {
+      riskFactors.push({ factor: "Sanctioned entity", impact: 50 })
+      totalRiskScore = Math.min(100, totalRiskScore + 50)
+    }
+
+    if (entity?.tags?.includes("darkweb")) {
+      riskFactors.push({ factor: "Dark web association", impact: 25 })
+      totalRiskScore = Math.min(100, totalRiskScore + 25)
+    }
+
+    // Calculate confidence based on source and verification
+    let confidence = entity?.confidence || 0.5
+    if (entity?.verified) {
+      confidence = Math.min(1.0, confidence + 0.3)
+    }
+
+    if (entity?.source === "community") {
+      confidence = Math.max(0.1, confidence - 0.1)
+    } else if (entity?.source === "algorithm") {
+      confidence = Math.max(0.1, confidence - 0.2)
+    }
+
+    return {
+      entity,
+      relatedEntities,
+      riskProfile: {
+        score: totalRiskScore,
+        factors: riskFactors,
+      },
+      confidence,
+    }
+  } catch (error) {
+    console.error("Failed to get entity by address:", error)
+
+    // Return a minimal response with null entity as fallback
+    return {
+      entity: null,
+      relatedEntities: [],
+      riskProfile: {
+        score: 50,
+        factors: [{ factor: "Unknown entity", impact: 0 }],
+      },
+      confidence: 0.1,
     }
   }
 }

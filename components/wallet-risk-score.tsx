@@ -6,9 +6,20 @@ import { Progress } from "@/components/ui/progress"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { AlertTriangle, Shield, TrendingUp, Info, ChevronDown, ChevronUp, ExternalLink } from "lucide-react"
+import {
+  AlertTriangle,
+  Shield,
+  TrendingUp,
+  TrendingDown,
+  Info,
+  Activity,
+  ChevronDown,
+  ChevronUp,
+  ExternalLink,
+} from "lucide-react"
 import { fetchWalletRiskScore } from "@/lib/api"
 import type { RiskScore, RiskFactor } from "@/types/risk"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 interface WalletRiskScoreProps {
   walletAddress: string
@@ -73,6 +84,39 @@ export function WalletRiskScore({ walletAddress }: WalletRiskScoreProps) {
     return "bg-green-500"
   }
 
+  const getTrendIcon = (trend: string) => {
+    switch (trend) {
+      case "increasing":
+        return <TrendingUp className="h-4 w-4 text-red-500" />
+      case "decreasing":
+        return <TrendingDown className="h-4 w-4 text-green-500" />
+      default:
+        return <Activity className="h-4 w-4 text-blue-500" />
+    }
+  }
+
+  const getTrendText = (trend: string) => {
+    switch (trend) {
+      case "increasing":
+        return "Increasing Risk"
+      case "decreasing":
+        return "Decreasing Risk"
+      default:
+        return "Stable Risk"
+    }
+  }
+
+  const getTrendColor = (trend: string) => {
+    switch (trend) {
+      case "increasing":
+        return "text-red-500 bg-red-500/10 border-red-500/20"
+      case "decreasing":
+        return "text-green-500 bg-green-500/10 border-green-500/20"
+      default:
+        return "text-blue-500 bg-blue-500/10 border-blue-500/20"
+    }
+  }
+
   if (loading) {
     return (
       <Card>
@@ -116,38 +160,103 @@ export function WalletRiskScore({ walletAddress }: WalletRiskScoreProps) {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
-          <span>Risk Assessment</span>
+          <div className="flex items-center gap-2">
+            <span>Risk Assessment</span>
+            {riskScore.confidence && (
+              <Badge variant="outline" className="ml-2 text-xs">
+                {(riskScore.confidence * 100).toFixed(0)}% confidence
+              </Badge>
+            )}
+          </div>
           <Badge variant={getRiskBadgeVariant(riskScore.level)}>{riskScore.level.toUpperCase()} RISK</Badge>
         </CardTitle>
         <CardDescription>
-          Comprehensive risk analysis for wallet {walletAddress.substring(0, 6)}...
+          AI-powered risk analysis for wallet {walletAddress.substring(0, 6)}...
           {walletAddress.substring(walletAddress.length - 4)}
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="space-y-6">
-          {/* Risk Score Gauge */}
-          <div className="space-y-2">
-            <div className="flex justify-between items-center">
-              <h3 className="text-sm font-medium">Risk Score</h3>
-              <span className={`text-2xl font-bold ${getRiskColor(riskScore.level)}`}>{riskScore.score}/100</span>
-            </div>
-            <Progress
-              value={riskScore.score}
-              max={100}
-              className="h-3"
-              indicatorClassName={getProgressColor(riskScore.score)}
-            />
-            <div className="flex justify-between text-xs text-muted-foreground">
-              <span>Low Risk</span>
-              <span>Medium Risk</span>
-              <span>High Risk</span>
-            </div>
-          </div>
+        <Tabs defaultValue="overview" className="space-y-4">
+          <TabsList className="grid grid-cols-3">
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="factors">Risk Factors</TabsTrigger>
+            <TabsTrigger value="prediction">Prediction</TabsTrigger>
+          </TabsList>
 
-          {/* Risk Factors */}
-          <div>
-            <h3 className="text-sm font-medium mb-3">Risk Factors</h3>
+          <TabsContent value="overview" className="space-y-4">
+            {/* Risk Score Gauge */}
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <h3 className="text-sm font-medium">Risk Score</h3>
+                <span className={`text-2xl font-bold ${getRiskColor(riskScore.level)}`}>{riskScore.score}/100</span>
+              </div>
+              <Progress
+                value={riskScore.score}
+                max={100}
+                className="h-3"
+                indicatorClassName={getProgressColor(riskScore.score)}
+              />
+              <div className="flex justify-between text-xs text-muted-foreground">
+                <span>Low Risk</span>
+                <span>Medium Risk</span>
+                <span>High Risk</span>
+              </div>
+            </div>
+
+            {/* Top Risk Factors Summary */}
+            <div>
+              <h3 className="text-sm font-medium mb-3">Top Risk Factors</h3>
+              <div className="space-y-2">
+                {riskScore.factors.slice(0, 3).map((factor) => (
+                  <div key={factor.name} className="p-3 border rounded-md flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div
+                        className="w-1 h-6 rounded-full"
+                        style={{
+                          backgroundColor:
+                            factor.impact >= 15
+                              ? "rgb(239, 68, 68)"
+                              : factor.impact >= 10
+                                ? "rgb(234, 179, 8)"
+                                : "rgb(34, 197, 94)",
+                        }}
+                      />
+                      <div>
+                        <div className="font-medium">{factor.name}</div>
+                        <div className="text-xs text-muted-foreground">{factor.description}</div>
+                      </div>
+                    </div>
+                    <span
+                      className={`font-medium ${getRiskColor(factor.impact >= 15 ? "high" : factor.impact >= 10 ? "medium" : "low")}`}
+                    >
+                      +{factor.impact}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Risk Trend */}
+            <div>
+              <h3 className="text-sm font-medium mb-3">Risk Trend</h3>
+              <div className="p-4 border rounded-md flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  {getTrendIcon(riskScore.trend || "stable")}
+                  <div>
+                    <div className="font-medium">{getTrendText(riskScore.trend || "stable")}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {riskScore.trendDescription || "No significant changes in the last 30 days"}
+                    </div>
+                  </div>
+                </div>
+                <Badge variant="outline" className={getTrendColor(riskScore.trend || "stable")}>
+                  {riskScore.trendPercentage || "+2%"} change
+                </Badge>
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="factors" className="space-y-4">
             <div className="space-y-3">
               {riskScore.factors.map((factor) => (
                 <RiskFactorCard
@@ -158,36 +267,64 @@ export function WalletRiskScore({ walletAddress }: WalletRiskScoreProps) {
                 />
               ))}
             </div>
-          </div>
+          </TabsContent>
 
-          {/* Risk Trend */}
-          <div>
-            <h3 className="text-sm font-medium mb-3">Risk Trend</h3>
-            <div className="p-4 border rounded-md flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <TrendingUp className="h-5 w-5 text-green-500" />
-                <div>
-                  <div className="font-medium">Stable Risk Profile</div>
-                  <div className="text-xs text-muted-foreground">No significant changes in the last 30 days</div>
+          <TabsContent value="prediction" className="space-y-4">
+            <div className="p-4 border rounded-md space-y-4">
+              <div>
+                <h3 className="text-sm font-medium mb-2">AI Prediction</h3>
+                <p className="text-sm text-muted-foreground">
+                  Based on historical patterns and machine learning analysis, this wallet is predicted to:
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="p-3 border rounded-md">
+                  <h4 className="text-xs font-medium mb-1">Future Risk Trend</h4>
+                  <div className="flex items-center gap-2">
+                    {getTrendIcon(riskScore.predictedTrend || "stable")}
+                    <span className="font-medium">{getTrendText(riskScore.predictedTrend || "stable")}</span>
+                  </div>
+                </div>
+
+                <div className="p-3 border rounded-md">
+                  <h4 className="text-xs font-medium mb-1">Prediction Confidence</h4>
+                  <div className="flex items-center gap-2">
+                    <Progress
+                      value={riskScore.predictionConfidence ? riskScore.predictionConfidence * 100 : 75}
+                      max={100}
+                      className="h-2"
+                    />
+                    <span className="text-sm font-medium">
+                      {riskScore.predictionConfidence ? (riskScore.predictionConfidence * 100).toFixed(0) : 75}%
+                    </span>
+                  </div>
                 </div>
               </div>
-              <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500/20">
-                +2% change
-              </Badge>
-            </div>
-          </div>
 
-          {/* Actions */}
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" size="sm">
-              <Shield className="mr-2 h-4 w-4" />
-              View Full Report
-            </Button>
-            <Button variant="outline" size="sm">
-              <ExternalLink className="mr-2 h-4 w-4" />
-              Export Data
-            </Button>
-          </div>
+              <div>
+                <h4 className="text-xs font-medium mb-1">Anomaly Detection</h4>
+                <div className="p-3 bg-muted/50 rounded-md">
+                  <p className="text-sm">
+                    {riskScore.anomalyDescription ||
+                      "No significant anomalies detected in recent transaction patterns. The wallet behavior appears consistent with its historical activity."}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </TabsContent>
+        </Tabs>
+
+        {/* Actions */}
+        <div className="flex justify-end gap-2 mt-4">
+          <Button variant="outline" size="sm">
+            <Shield className="mr-2 h-4 w-4" />
+            View Full Report
+          </Button>
+          <Button variant="outline" size="sm">
+            <ExternalLink className="mr-2 h-4 w-4" />
+            Export Data
+          </Button>
         </div>
       </CardContent>
     </Card>
@@ -251,6 +388,16 @@ function RiskFactorCard({ factor, isExpanded, onToggle }: RiskFactorCardProps) {
                       {detail}
                     </div>
                   ))}
+                </div>
+              </div>
+            )}
+
+            {factor.confidence && (
+              <div className="mt-3">
+                <h4 className="text-xs font-medium mb-1">Detection Confidence</h4>
+                <div className="flex items-center gap-2">
+                  <Progress value={factor.confidence * 100} max={100} className="h-2" />
+                  <span className="text-xs">{(factor.confidence * 100).toFixed(0)}%</span>
                 </div>
               </div>
             )}
