@@ -1,149 +1,201 @@
 "use client"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Progress } from "@/components/ui/progress"
-import { CheckCircle2, Circle, AlertCircle } from "lucide-react"
-import { cn } from "@/lib/utils"
 
-interface Feature {
-  name: string
-  status: "completed" | "in-progress" | "planned"
+import type React from "react"
+
+import { useState, useEffect } from "react"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Button } from "@/components/ui/button"
+import { Progress } from "@/components/ui/progress"
+import { Badge } from "@/components/ui/badge"
+import { Wallet, Network, Tag, BarChart2, Bookmark, FileText } from "lucide-react"
+import Link from "next/link"
+
+// Define the feature data structure without React components
+interface FeatureData {
+  id: string
+  title: string
   description: string
+  iconType: string // Store icon type as a string
+  link: string
+  completed: boolean
 }
 
-const features: Feature[] = [
+// Full feature with React component
+interface Feature extends Omit<FeatureData, "iconType"> {
+  icon: React.ReactNode
+}
+
+// Map icon types to React components
+const getIconComponent = (iconType: string) => {
+  switch (iconType) {
+    case "wallet":
+      return <Wallet className="h-5 w-5 text-[#9945FF]" />
+    case "network":
+      return <Network className="h-5 w-5 text-[#14F195]" />
+    case "tag":
+      return <Tag className="h-5 w-5 text-[#9945FF]" />
+    case "chart":
+      return <BarChart2 className="h-5 w-5 text-[#14F195]" />
+    case "bookmark":
+      return <Bookmark className="h-5 w-5 text-[#9945FF]" />
+    case "file":
+      return <FileText className="h-5 w-5 text-[#14F195]" />
+    default:
+      return null
+  }
+}
+
+// Initial feature data without React components
+const initialFeatureData: FeatureData[] = [
   {
-    name: "Wallet Analysis Dashboard",
-    status: "completed",
-    description: "View comprehensive wallet details, transaction history, and token holdings",
+    id: "wallet-analysis",
+    title: "Analyze a Wallet",
+    description: "Search and analyze your first Solana wallet address",
+    iconType: "wallet",
+    link: "/wallet",
+    completed: false,
   },
   {
-    name: "Transaction Flow Visualization",
-    status: "completed",
-    description: "Interactive visualization of fund flows between wallets",
+    id: "transaction-flow",
+    title: "Explore Transaction Flow",
+    description: "Visualize how funds move between wallets",
+    iconType: "network",
+    link: "/wallet?tab=flow",
+    completed: false,
   },
   {
-    name: "Entity Labeling System",
-    status: "completed",
-    description: "Database of known entities with management interface",
+    id: "entity-labels",
+    title: "Review Entity Labels",
+    description: "Identify exchanges and known entities",
+    iconType: "tag",
+    link: "/wallet?tab=entities",
+    completed: false,
   },
   {
-    name: "Transaction Clustering",
-    status: "completed",
-    description: "Group related transactions to identify patterns",
+    id: "funding-analysis",
+    title: "Analyze Funding Sources",
+    description: "Track the origin of funds in a wallet",
+    iconType: "chart",
+    link: "/wallet?tab=funding",
+    completed: false,
   },
   {
-    name: "Risk Scoring",
-    status: "completed",
-    description: "Multi-factor risk assessment for wallets and transactions",
+    id: "save-investigation",
+    title: "Save an Investigation",
+    description: "Create your first saved investigation",
+    iconType: "bookmark",
+    link: "/investigations",
+    completed: false,
   },
   {
-    name: "Monitoring Dashboard",
-    status: "completed",
-    description: "Real-time alerts for suspicious on-chain activities",
-  },
-  {
-    name: "Investigation Management",
-    status: "completed",
-    description: "Create, manage, and share forensic investigations",
-  },
-  {
-    name: "Export & Reporting",
-    status: "completed",
-    description: "Generate comprehensive reports in multiple formats",
-  },
-  {
-    name: "Token Analysis",
-    status: "completed",
-    description: "Detailed analysis of token distribution and holder patterns",
-  },
-  {
-    name: "Collaboration Tools",
-    status: "completed",
-    description: "Team collaboration features for investigations",
-  },
-  {
-    name: "Advanced Filtering",
-    status: "completed",
-    description: "Complex query capabilities for transaction and wallet data",
-  },
-  {
-    name: "API Integration",
-    status: "in-progress",
-    description: "REST API for programmatic access to forensic tools",
+    id: "export-report",
+    title: "Export a Report",
+    description: "Generate your first forensic report",
+    iconType: "file",
+    link: "/reports",
+    completed: false,
   },
 ]
 
 export function FeatureChecklist() {
-  const completedCount = features.filter((f) => f.status === "completed").length
-  const inProgressCount = features.filter((f) => f.status === "in-progress").length
-  const plannedCount = features.filter((f) => f.status === "planned").length
+  const [featureData, setFeatureData] = useState<FeatureData[]>(initialFeatureData)
 
-  const completionPercentage = Math.round((completedCount / features.length) * 100)
+  // Convert feature data to full features with React components
+  const features: Feature[] = featureData.map((data) => ({
+    id: data.id,
+    title: data.title,
+    description: data.description,
+    icon: getIconComponent(data.iconType),
+    link: data.link,
+    completed: data.completed,
+  }))
+
+  // Load saved state from localStorage
+  useEffect(() => {
+    try {
+      const savedFeatures = localStorage.getItem("feature-checklist")
+      if (savedFeatures) {
+        setFeatureData(JSON.parse(savedFeatures))
+      }
+    } catch (error) {
+      console.error("Error loading feature checklist from localStorage:", error)
+    }
+  }, [])
+
+  // Save state to localStorage when features change
+  const handleToggleFeature = (id: string) => {
+    const updatedFeatureData = featureData.map((feature) =>
+      feature.id === id ? { ...feature, completed: !feature.completed } : feature,
+    )
+
+    setFeatureData(updatedFeatureData)
+
+    try {
+      localStorage.setItem("feature-checklist", JSON.stringify(updatedFeatureData))
+    } catch (error) {
+      console.error("Error saving feature checklist to localStorage:", error)
+    }
+  }
+
+  const completedCount = features.filter((feature) => feature.completed).length
+  const progress = (completedCount / features.length) * 100
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center justify-between">
-          <span>Implementation Progress</span>
-          <span className="text-lg">{completionPercentage}% Complete</span>
-        </CardTitle>
-        <CardDescription>Current development status of platform features</CardDescription>
-        <Progress value={completionPercentage} className="h-2 mt-2" />
+    <Card className="border-border/30 backdrop-blur-sm">
+      <CardHeader className="pb-2">
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="text-xl font-genos solana-gradient-text">Feature Checklist</CardTitle>
+            <CardDescription>Track your progress exploring the toolkit</CardDescription>
+          </div>
+          <Badge variant={progress === 100 ? "default" : "outline"} className="font-genos">
+            {completedCount}/{features.length} Completed
+          </Badge>
+        </div>
       </CardHeader>
       <CardContent>
-        <div className="flex justify-between text-sm mb-6">
-          <div className="flex items-center">
-            <div className="w-3 h-3 rounded-full bg-green-500 mr-2"></div>
-            <span>Completed: {completedCount}</span>
-          </div>
-          <div className="flex items-center">
-            <div className="w-3 h-3 rounded-full bg-amber-500 mr-2"></div>
-            <span>In Progress: {inProgressCount}</span>
-          </div>
-          <div className="flex items-center">
-            <div className="w-3 h-3 rounded-full bg-gray-300 mr-2"></div>
-            <span>Planned: {plannedCount}</span>
-          </div>
+        <div className="mb-4">
+          <Progress value={progress} className="h-2" />
         </div>
-
         <div className="space-y-4">
-          {features.map((feature, index) => (
+          {features.map((feature) => (
             <div
-              key={index}
-              className={cn(
-                "flex items-start p-3 rounded-lg",
-                feature.status === "completed"
-                  ? "bg-green-50 dark:bg-green-950/20"
-                  : feature.status === "in-progress"
-                    ? "bg-amber-50 dark:bg-amber-950/20"
-                    : "bg-gray-50 dark:bg-gray-800/20",
-              )}
+              key={feature.id}
+              className={`flex items-start space-x-4 rounded-md border p-4 transition-colors ${
+                feature.completed ? "border-[#14F195]/30 bg-[#14F195]/5" : "border-border/30 hover:border-[#9945FF]/30"
+              }`}
             >
-              <div className="mr-3 mt-0.5">
-                {feature.status === "completed" ? (
-                  <CheckCircle2 className="h-5 w-5 text-green-500" />
-                ) : feature.status === "in-progress" ? (
-                  <AlertCircle className="h-5 w-5 text-amber-500" />
-                ) : (
-                  <Circle className="h-5 w-5 text-gray-400" />
-                )}
-              </div>
-              <div>
-                <h4 className="font-medium">{feature.name}</h4>
+              <Checkbox
+                id={feature.id}
+                checked={feature.completed}
+                onCheckedChange={() => handleToggleFeature(feature.id)}
+                className={feature.completed ? "text-[#14F195] border-[#14F195]" : ""}
+              />
+              <div className="flex-1 space-y-1">
+                <div className="flex items-center">
+                  {feature.icon}
+                  <label htmlFor={feature.id} className="ml-2 font-medium cursor-pointer select-none">
+                    {feature.title}
+                  </label>
+                </div>
                 <p className="text-sm text-muted-foreground">{feature.description}</p>
               </div>
-              <div className="ml-auto text-xs font-medium">
-                {feature.status === "completed" ? (
-                  <span className="text-green-600 dark:text-green-400">Completed</span>
-                ) : feature.status === "in-progress" ? (
-                  <span className="text-amber-600 dark:text-amber-400">In Progress</span>
-                ) : (
-                  <span className="text-gray-500">Planned</span>
-                )}
-              </div>
+              <Button asChild variant="outline" size="sm">
+                <Link href={feature.link}>Explore</Link>
+              </Button>
             </div>
           ))}
         </div>
+
+        {progress === 100 && (
+          <div className="mt-6 rounded-md bg-[#14F195]/10 p-4 border border-[#14F195]/30">
+            <p className="font-medium text-[#14F195]">Congratulations! You've explored all features.</p>
+            <p className="text-sm text-muted-foreground mt-1">
+              You're now ready to use the full power of the Solana Forensic Toolkit.
+            </p>
+          </div>
+        )}
       </CardContent>
     </Card>
   )

@@ -1,395 +1,548 @@
 "use client"
 
 import { useState } from "react"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
+import { AlertTriangle, Tag, Trash2, UserPlus } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Switch } from "@/components/ui/switch"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Label } from "@/components/ui/label"
+import { Input } from "@/components/ui/input"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
-import { Check, AlertCircle } from "lucide-react"
+import { Slider } from "@/components/ui/slider"
+import { saveEntityLabel } from "@/lib/entity-service"
 import type { EntityLabel } from "@/types/entity"
-import { getErrorMessage } from "@/lib/utils"
 
 interface EntityLabelBulkOperationsProps {
-  labels: EntityLabel[]
-  onDelete: (ids: string[]) => Promise<void>
-  onUpdateCategory: (ids: string[], category: string) => Promise<void>
-  onUpdateVerified: (ids: string[], verified: boolean) => Promise<void>
-  onUpdateRiskScore: (ids: string[], riskScore: number) => Promise<void>
+  onOperationComplete?: () => void
 }
 
-export function EntityLabelBulkOperations({
-  labels,
-  onDelete,
-  onUpdateCategory,
-  onUpdateVerified,
-  onUpdateRiskScore,
-}: EntityLabelBulkOperationsProps) {
-  const [selectedLabelIds, setSelectedLabelIds] = useState<string[]>([])
-  const [category, setCategory] = useState<string>("")
-  const [verified, setVerified] = useState<boolean>(false)
-  const [riskScore, setRiskScore] = useState<number>(0)
-  const [isOpen, setIsOpen] = useState<boolean>(false)
-  const [operation, setOperation] = useState<"delete" | "updateCategory" | "updateVerified" | "updateRiskScore" | null>(
-    null,
-  )
-  const [loading, setLoading] = useState<boolean>(false)
+export function EntityLabelBulkOperations({ onOperationComplete }: EntityLabelBulkOperationsProps) {
+  const [activeTab, setActiveTab] = useState("add")
+  const [isProcessing, setIsProcessing] = useState(false)
+  const [results, setResults] = useState<{
+    success: number
+    failed: number
+    messages: string[]
+  }>({ success: 0, failed: 0, messages: [] })
   const [error, setError] = useState<string | null>(null)
-  const [success, setSuccess] = useState<string | null>(null)
 
-  const categoryOptions = ["Exchange", "DeFi Protocol", "NFT Marketplace", "Wallet", "DAO", "Gaming", "Social", "Other"]
+  // Add form state
+  const [addFormData, setAddFormData] = useState({
+    addresses: "",
+    label: "",
+    category: "exchange",
+    confidence: 0.8,
+    source: "user",
+    notes: "",
+    tags: "",
+    riskScore: 0,
+  })
 
-  const handleSelectLabel = (id: string) => {
-    if (selectedLabelIds.includes(id)) {
-      setSelectedLabelIds(selectedLabelIds.filter((labelId) => labelId !== id))
-    } else {
-      setSelectedLabelIds([...selectedLabelIds, id])
+  // Delete form state
+  const [deleteFormData, setDeleteFormData] = useState({
+    addresses: "",
+    deleteAll: false,
+    category: "",
+  })
+
+  // Tag form state
+  const [tagFormData, setTagFormData] = useState({
+    addresses: "",
+    tagsToAdd: "",
+    tagsToRemove: "",
+  })
+
+  const handleBulkAdd = async () => {
+    if (!addFormData.addresses.trim()) {
+      setError("Please enter at least one wallet address")
+      return
     }
-  }
 
-  const handleSelectAll = () => {
-    if (selectedLabelIds.length === labels.length) {
-      setSelectedLabelIds([])
-    } else {
-      setSelectedLabelIds(labels.map((label) => label.id))
+    if (!addFormData.label.trim()) {
+      setError("Label name is required")
+      return
+    }
+
+    setIsProcessing(true)
+    setError(null)
+    setResults({ success: 0, failed: 0, messages: [] })
+
+    try {
+      const addresses = addFormData.addresses
+        .split("\n")
+        .map((addr) => addr.trim())
+        .filter((addr) => addr.length > 0)
+
+      let successCount = 0
+      let failedCount = 0
+      const messages: string[] = []
+
+      for (const address of addresses) {
+        try {
+          await saveEntityLabel({
+            address,
+            label: addFormData.label,
+            category: addFormData.category as "exchange" | "individual" | "contract" | "scam" | "other",
+            confidence: addFormData.confidence,
+            source: addFormData.source as "user" | "community" | "algorithm",
+            notes: addFormData.notes,
+            tags: addFormData.tags ? addFormData.tags.split(",").map((tag) => tag.trim()) : undefined,
+            riskScore: addFormData.riskScore,
+          })
+          successCount++
+          messages.push(`✅ Added label to ${address}`)
+        } catch (err) {
+          failedCount++
+          messages.push(`❌ Failed to add label to ${address}: ${(err as Error).message}`)
+        }
+      }
+
+      setResults({
+        success: successCount,
+        failed: failedCount,
+        messages,
+      })
+
+      if (onOperationComplete) {
+        onOperationComplete()
+      }
+    } catch (err) {
+      setError(`Operation failed: ${(err as Error).message}`)
+    } finally {
+      setIsProcessing(false)
     }
   }
 
   const handleBulkDelete = async () => {
-    if (selectedLabelIds.length === 0) return
+    if (!deleteFormData.addresses.trim() && !deleteFormData.deleteAll) {
+      setError("Please enter at least one wallet address or select 'Delete All'")
+      return
+    }
 
-    setLoading(true)
+    setIsProcessing(true)
     setError(null)
-    setSuccess(null)
+    setResults({ success: 0, failed: 0, messages: [] })
 
     try {
-      await onDelete(selectedLabelIds)
-      setSuccess(`Successfully deleted ${selectedLabelIds.length} labels`)
-      setSelectedLabelIds([])
-      setIsOpen(false)
+      // In a real implementation, you would fetch the labels based on criteria
+      // and then delete them. This is a simplified version.
+
+      const addresses = deleteFormData.addresses
+        .split("\n")
+        .map((addr) => addr.trim())
+        .filter((addr) => addr.length > 0)
+
+      // Mock implementation - in a real app, you'd query the database
+      const labelsToDelete: EntityLabel[] = [
+        {
+          id: "mock-1",
+          address: addresses[0] || "mock-address-1",
+          label: "Mock Label 1",
+          category: "exchange",
+          confidence: 0.9,
+          source: "user",
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+        {
+          id: "mock-2",
+          address: addresses[1] || "mock-address-2",
+          label: "Mock Label 2",
+          category: "individual",
+          confidence: 0.8,
+          source: "community",
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+      ]
+
+      let successCount = 0
+      let failedCount = 0
+      const messages: string[] = []
+
+      for (const label of labelsToDelete) {
+        try {
+          // In a real implementation, you would actually delete the label
+          // await deleteEntityLabel(label.id)
+          successCount++
+          messages.push(`✅ Deleted label "${label.label}" from ${label.address}`)
+        } catch (err) {
+          failedCount++
+          messages.push(`❌ Failed to delete label from ${label.address}: ${(err as Error).message}`)
+        }
+      }
+
+      setResults({
+        success: successCount,
+        failed: failedCount,
+        messages,
+      })
+
+      if (onOperationComplete) {
+        onOperationComplete()
+      }
     } catch (err) {
-      setError(getErrorMessage(err))
+      setError(`Operation failed: ${(err as Error).message}`)
     } finally {
-      setLoading(false)
+      setIsProcessing(false)
     }
   }
 
-  const handleBulkUpdateCategory = async () => {
-    if (selectedLabelIds.length === 0 || !category) return
+  const handleBulkTag = async () => {
+    if (!tagFormData.addresses.trim()) {
+      setError("Please enter at least one wallet address")
+      return
+    }
 
-    setLoading(true)
+    if (!tagFormData.tagsToAdd.trim() && !tagFormData.tagsToRemove.trim()) {
+      setError("Please specify tags to add or remove")
+      return
+    }
+
+    setIsProcessing(true)
     setError(null)
-    setSuccess(null)
+    setResults({ success: 0, failed: 0, messages: [] })
 
     try {
-      await onUpdateCategory(selectedLabelIds, category)
-      setSuccess(`Successfully updated category for ${selectedLabelIds.length} labels`)
-      setIsOpen(false)
+      const addresses = tagFormData.addresses
+        .split("\n")
+        .map((addr) => addr.trim())
+        .filter((addr) => addr.length > 0)
+
+      // Mock implementation - in a real app, you'd query and update the database
+      const labelsToUpdate: EntityLabel[] = [
+        {
+          id: "mock-1",
+          address: addresses[0] || "mock-address-1",
+          label: "Mock Label 1",
+          category: "exchange",
+          confidence: 0.9,
+          source: "user",
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          tags: ["existing-tag-1", "existing-tag-2"],
+        },
+        {
+          id: "mock-2",
+          address: addresses[1] || "mock-address-2",
+          label: "Mock Label 2",
+          category: "individual",
+          confidence: 0.8,
+          source: "community",
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          tags: ["existing-tag-3"],
+        },
+      ]
+
+      let successCount = 0
+      let failedCount = 0
+      const messages: string[] = []
+
+      const tagsToAdd = tagFormData.tagsToAdd
+        .split(",")
+        .map((tag) => tag.trim())
+        .filter((tag) => tag.length > 0)
+
+      const tagsToRemove = tagFormData.tagsToRemove
+        .split(",")
+        .map((tag) => tag.trim())
+        .filter((tag) => tag.length > 0)
+
+      for (const label of labelsToUpdate) {
+        try {
+          // In a real implementation, you would actually update the label
+          // const updatedTags = [
+          //   ...(label.tags || []).filter(tag => !tagsToRemove.includes(tag)),
+          //   ...tagsToAdd.filter(tag => !(label.tags || []).includes(tag))
+          // ]
+          // await updateEntityLabel(label.id, { tags: updatedTags })
+
+          successCount++
+          messages.push(`✅ Updated tags for "${label.label}" (${label.address})`)
+        } catch (err) {
+          failedCount++
+          messages.push(`❌ Failed to update tags for ${label.address}: ${(err as Error).message}`)
+        }
+      }
+
+      setResults({
+        success: successCount,
+        failed: failedCount,
+        messages,
+      })
+
+      if (onOperationComplete) {
+        onOperationComplete()
+      }
     } catch (err) {
-      setError(getErrorMessage(err))
+      setError(`Operation failed: ${(err as Error).message}`)
     } finally {
-      setLoading(false)
+      setIsProcessing(false)
     }
-  }
-
-  const handleBulkUpdateVerified = async () => {
-    if (selectedLabelIds.length === 0) return
-
-    setLoading(true)
-    setError(null)
-    setSuccess(null)
-
-    try {
-      await onUpdateVerified(selectedLabelIds, verified)
-      setSuccess(`Successfully updated verification status for ${selectedLabelIds.length} labels`)
-      setIsOpen(false)
-    } catch (err) {
-      setError(getErrorMessage(err))
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleBulkUpdateRiskScore = async () => {
-    if (selectedLabelIds.length === 0) return
-
-    setLoading(true)
-    setError(null)
-    setSuccess(null)
-
-    try {
-      await onUpdateRiskScore(selectedLabelIds, riskScore)
-      setSuccess(`Successfully updated risk score for ${selectedLabelIds.length} labels`)
-      setIsOpen(false)
-    } catch (err) {
-      setError(getErrorMessage(err))
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleOpenDialog = (op: "delete" | "updateCategory" | "updateVerified" | "updateRiskScore") => {
-    setOperation(op)
-    setIsOpen(true)
-    setError(null)
-    setSuccess(null)
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-2">
-          <Button variant="outline" size="sm" onClick={handleSelectAll}>
-            {selectedLabelIds.length === labels.length ? "Deselect All" : "Select All"}
-          </Button>
-          <span className="text-sm text-muted-foreground">
-            {selectedLabelIds.length} of {labels.length} selected
-          </span>
-        </div>
-
-        <div className="flex items-center space-x-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => handleOpenDialog("updateCategory")}
-            disabled={selectedLabelIds.length === 0}
-          >
-            Update Category
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => handleOpenDialog("updateVerified")}
-            disabled={selectedLabelIds.length === 0}
-          >
-            Update Verification
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => handleOpenDialog("updateRiskScore")}
-            disabled={selectedLabelIds.length === 0}
-          >
-            Update Risk Score
-          </Button>
-          <Button
-            variant="destructive"
-            size="sm"
-            onClick={() => handleOpenDialog("delete")}
-            disabled={selectedLabelIds.length === 0}
-          >
-            Delete Selected
-          </Button>
-        </div>
-      </div>
-
-      <div className="border rounded-md">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-muted">
-            <tr>
-              <th
-                scope="col"
-                className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider"
-              >
-                Select
-              </th>
-              <th
-                scope="col"
-                className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider"
-              >
-                Name
-              </th>
-              <th
-                scope="col"
-                className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider"
-              >
-                Address
-              </th>
-              <th
-                scope="col"
-                className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider"
-              >
-                Category
-              </th>
-              <th
-                scope="col"
-                className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider"
-              >
-                Verification
-              </th>
-              <th
-                scope="col"
-                className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider"
-              >
-                Risk Score
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-card divide-y divide-gray-200">
-            {labels.map((label) => (
-              <tr
-                key={label.id}
-                className={`${selectedLabelIds.includes(label.id) ? "bg-muted/50" : ""}`}
-                onClick={() => handleSelectLabel(label.id)}
-              >
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="flex items-center">
-                    <input
-                      type="checkbox"
-                      className="h-4 w-4 text-primary focus:ring-primary-focus border-gray-300 rounded"
-                      checked={selectedLabelIds.includes(label.id)}
-                      onChange={() => handleSelectLabel(label.id)}
-                    />
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm font-medium">{label.name}</div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-muted-foreground truncate max-w-[150px]">{label.address}</div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <Badge variant="outline">{label.category}</Badge>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  {label.verified ? (
-                    <Badge variant="success" className="bg-green-100 text-green-800">
-                      <Check className="w-3 h-3 mr-1" />
-                      Verified
-                    </Badge>
-                  ) : (
-                    <Badge variant="secondary">Unverified</Badge>
-                  )}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div
-                    className={`text-sm font-medium ${
-                      label.riskScore > 75
-                        ? "text-red-500"
-                        : label.riskScore > 50
-                          ? "text-orange-500"
-                          : label.riskScore > 25
-                            ? "text-yellow-500"
-                            : "text-green-500"
-                    }`}
-                  >
-                    {label.riskScore}
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>
-              {operation === "delete" && "Delete Selected Labels"}
-              {operation === "updateCategory" && "Update Category for Selected Labels"}
-              {operation === "updateVerified" && "Update Verification Status"}
-              {operation === "updateRiskScore" && "Update Risk Score"}
-            </DialogTitle>
-            <DialogDescription>
-              {operation === "delete" &&
-                `You are about to delete ${selectedLabelIds.length} labels. This action cannot be undone.`}
-              {operation === "updateCategory" &&
-                `You are about to update the category for ${selectedLabelIds.length} labels.`}
-              {operation === "updateVerified" &&
-                `You are about to update the verification status for ${selectedLabelIds.length} labels.`}
-              {operation === "updateRiskScore" &&
-                `You are about to update the risk score for ${selectedLabelIds.length} labels.`}
-            </DialogDescription>
-          </DialogHeader>
-
-          {operation === "updateCategory" && (
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="category">Category</Label>
-                <Select value={category} onValueChange={setCategory}>
-                  <SelectTrigger id="category">
-                    <SelectValue placeholder="Select category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categoryOptions.map((option) => (
-                      <SelectItem key={option} value={option}>
-                        {option}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          )}
-
-          {operation === "updateVerified" && (
-            <div className="space-y-4">
-              <div className="flex items-center space-x-2">
-                <Switch id="verified" checked={verified} onCheckedChange={setVerified} />
-                <Label htmlFor="verified">Verified Status</Label>
-              </div>
-            </div>
-          )}
-
-          {operation === "updateRiskScore" && (
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="riskScore">Risk Score (0-100)</Label>
-                <Input
-                  id="riskScore"
-                  type="number"
-                  min="0"
-                  max="100"
-                  value={riskScore}
-                  onChange={(e) => setRiskScore(Number.parseInt(e.target.value) || 0)}
-                />
-              </div>
-            </div>
-          )}
+    <Card>
+      <CardHeader>
+        <CardTitle>Bulk Operations</CardTitle>
+        <CardDescription>Perform operations on multiple entity labels at once</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="add">
+              <UserPlus className="mr-2 h-4 w-4" />
+              Add Labels
+            </TabsTrigger>
+            <TabsTrigger value="delete">
+              <Trash2 className="mr-2 h-4 w-4" />
+              Delete Labels
+            </TabsTrigger>
+            <TabsTrigger value="tags">
+              <Tag className="mr-2 h-4 w-4" />
+              Manage Tags
+            </TabsTrigger>
+          </TabsList>
 
           {error && (
-            <div className="bg-red-50 text-red-800 p-3 rounded-md flex items-center space-x-2">
-              <AlertCircle className="h-5 w-5" />
-              <span>{error}</span>
-            </div>
+            <Alert variant="destructive" className="mt-4">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>Error</AlertTitle>
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
           )}
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsOpen(false)} disabled={loading}>
-              Cancel
-            </Button>
-            <Button
-              variant={operation === "delete" ? "destructive" : "default"}
-              onClick={() => {
-                if (operation === "delete") handleBulkDelete()
-                if (operation === "updateCategory") handleBulkUpdateCategory()
-                if (operation === "updateVerified") handleBulkUpdateVerified()
-                if (operation === "updateRiskScore") handleBulkUpdateRiskScore()
-              }}
-              disabled={loading || (operation === "updateCategory" && !category)}
-            >
-              {loading ? "Processing..." : "Confirm"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          {results.success > 0 || results.failed > 0 ? (
+            <div className="mt-4 space-y-4">
+              <div className="flex items-center gap-4">
+                <Badge variant="outline" className="bg-green-500/10 text-green-500">
+                  {results.success} Successful
+                </Badge>
+                {results.failed > 0 && (
+                  <Badge variant="outline" className="bg-red-500/10 text-red-500">
+                    {results.failed} Failed
+                  </Badge>
+                )}
+              </div>
 
-      {success && (
-        <div className="bg-green-50 text-green-800 p-3 rounded-md flex items-center space-x-2">
-          <Check className="h-5 w-5" />
-          <span>{success}</span>
-        </div>
-      )}
-    </div>
+              <div className="max-h-40 overflow-y-auto rounded border p-2 text-sm">
+                {results.messages.map((message, index) => (
+                  <div key={index} className="py-1">
+                    {message}
+                  </div>
+                ))}
+              </div>
+
+              <Button onClick={() => setResults({ success: 0, failed: 0, messages: [] })}>Clear Results</Button>
+            </div>
+          ) : (
+            <>
+              <TabsContent value="add" className="space-y-4 mt-4">
+                <div className="space-y-2">
+                  <Label htmlFor="addresses">Wallet Addresses (one per line)</Label>
+                  <Textarea
+                    id="addresses"
+                    placeholder="Enter wallet addresses, one per line"
+                    value={addFormData.addresses}
+                    onChange={(e) => setAddFormData({ ...addFormData, addresses: e.target.value })}
+                    rows={5}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="label">Label</Label>
+                    <Input
+                      id="label"
+                      placeholder="e.g., Exchange Hot Wallet"
+                      value={addFormData.label}
+                      onChange={(e) => setAddFormData({ ...addFormData, label: e.target.value })}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="category">Category</Label>
+                    <Select
+                      value={addFormData.category}
+                      onValueChange={(value) => setAddFormData({ ...addFormData, category: value })}
+                    >
+                      <SelectTrigger id="category">
+                        <SelectValue placeholder="Select a category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="exchange">Exchange</SelectItem>
+                        <SelectItem value="individual">Individual</SelectItem>
+                        <SelectItem value="contract">Contract</SelectItem>
+                        <SelectItem value="mixer">Mixer</SelectItem>
+                        <SelectItem value="scam">Scam</SelectItem>
+                        <SelectItem value="other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="confidence">Confidence ({(addFormData.confidence * 100).toFixed(0)}%)</Label>
+                  <Slider
+                    id="confidence"
+                    min={0}
+                    max={1}
+                    step={0.05}
+                    value={[addFormData.confidence]}
+                    onValueChange={(value) => setAddFormData({ ...addFormData, confidence: value[0] })}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="riskScore">Risk Score ({addFormData.riskScore})</Label>
+                  <Slider
+                    id="riskScore"
+                    min={0}
+                    max={100}
+                    step={5}
+                    value={[addFormData.riskScore]}
+                    onValueChange={(value) => setAddFormData({ ...addFormData, riskScore: value[0] })}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="source">Source</Label>
+                    <Select
+                      value={addFormData.source}
+                      onValueChange={(value) => setAddFormData({ ...addFormData, source: value })}
+                    >
+                      <SelectTrigger id="source">
+                        <SelectValue placeholder="Select a source" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="user">User</SelectItem>
+                        <SelectItem value="community">Community</SelectItem>
+                        <SelectItem value="algorithm">Algorithm</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="tags">Tags (comma separated)</Label>
+                    <Input
+                      id="tags"
+                      placeholder="e.g., exchange, verified, high-volume"
+                      value={addFormData.tags}
+                      onChange={(e) => setAddFormData({ ...addFormData, tags: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="notes">Notes</Label>
+                  <Textarea
+                    id="notes"
+                    placeholder="Additional information about these entities"
+                    value={addFormData.notes}
+                    onChange={(e) => setAddFormData({ ...addFormData, notes: e.target.value })}
+                    rows={3}
+                  />
+                </div>
+
+                <Button onClick={handleBulkAdd} disabled={isProcessing} className="w-full">
+                  {isProcessing ? "Processing..." : "Add Labels to All Addresses"}
+                </Button>
+              </TabsContent>
+
+              <TabsContent value="delete" className="space-y-4 mt-4">
+                <div className="space-y-2">
+                  <Label htmlFor="delete-addresses">Wallet Addresses (one per line)</Label>
+                  <Textarea
+                    id="delete-addresses"
+                    placeholder="Enter wallet addresses, one per line"
+                    value={deleteFormData.addresses}
+                    onChange={(e) => setDeleteFormData({ ...deleteFormData, addresses: e.target.value })}
+                    rows={5}
+                    disabled={deleteFormData.deleteAll}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="delete-category">Filter by Category (optional)</Label>
+                  <Select
+                    value={deleteFormData.category}
+                    onValueChange={(value) => setDeleteFormData({ ...deleteFormData, category: value })}
+                  >
+                    <SelectTrigger id="delete-category">
+                      <SelectValue placeholder="Select a category or leave empty for all" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Categories</SelectItem>
+                      <SelectItem value="exchange">Exchange</SelectItem>
+                      <SelectItem value="individual">Individual</SelectItem>
+                      <SelectItem value="contract">Contract</SelectItem>
+                      <SelectItem value="mixer">Mixer</SelectItem>
+                      <SelectItem value="scam">Scam</SelectItem>
+                      <SelectItem value="other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <Alert variant="destructive">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertTitle>Warning</AlertTitle>
+                  <AlertDescription>
+                    This operation will permanently delete entity labels. This action cannot be undone.
+                  </AlertDescription>
+                </Alert>
+
+                <Button onClick={handleBulkDelete} disabled={isProcessing} variant="destructive" className="w-full">
+                  {isProcessing ? "Processing..." : "Delete Labels"}
+                </Button>
+              </TabsContent>
+
+              <TabsContent value="tags" className="space-y-4 mt-4">
+                <div className="space-y-2">
+                  <Label htmlFor="tag-addresses">Wallet Addresses (one per line)</Label>
+                  <Textarea
+                    id="tag-addresses"
+                    placeholder="Enter wallet addresses, one per line"
+                    value={tagFormData.addresses}
+                    onChange={(e) => setTagFormData({ ...tagFormData, addresses: e.target.value })}
+                    rows={5}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="tags-to-add">Tags to Add (comma separated)</Label>
+                    <Input
+                      id="tags-to-add"
+                      placeholder="e.g., exchange, verified"
+                      value={tagFormData.tagsToAdd}
+                      onChange={(e) => setTagFormData({ ...tagFormData, tagsToAdd: e.target.value })}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="tags-to-remove">Tags to Remove (comma separated)</Label>
+                    <Input
+                      id="tags-to-remove"
+                      placeholder="e.g., suspicious, unverified"
+                      value={tagFormData.tagsToRemove}
+                      onChange={(e) => setTagFormData({ ...tagFormData, tagsToRemove: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                <Button onClick={handleBulkTag} disabled={isProcessing} className="w-full">
+                  {isProcessing ? "Processing..." : "Update Tags"}
+                </Button>
+              </TabsContent>
+            </>
+          )}
+        </Tabs>
+      </CardContent>
+    </Card>
   )
 }

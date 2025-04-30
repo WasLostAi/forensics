@@ -1,238 +1,286 @@
 "use client"
 
-import * as React from "react"
+import type React from "react"
+
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { ConnectionStatus } from "@/components/connection-status"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 import { ModeToggle } from "@/components/mode-toggle"
-import { SolanaLogo } from "@/components/solana-logo"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import {
-  Menu,
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarProvider,
+  SidebarTrigger,
+  SidebarInset,
+  SidebarSeparator,
+  SidebarGroup,
+  SidebarGroupLabel,
+  SidebarGroupContent,
+} from "@/components/ui/sidebar"
+import {
   Search,
+  BarChart2,
+  Network,
   Tag,
+  Github,
+  Bookmark,
+  Home,
   Wallet,
+  History,
   FileText,
   Settings,
-  BellRing,
-  Layers,
-  Network,
-  Home,
-  ChevronDown,
-  AlertTriangle,
-  File,
+  Users,
   HelpCircle,
+  LogOut,
 } from "lucide-react"
-import { cn } from "@/lib/utils"
 import { useMediaQuery } from "@/hooks/use-media-query"
+import { SolanaLogo } from "@/components/solana-logo"
+import { ConnectionStatus } from "@/components/connection-status"
+import { MockModeBanner } from "@/components/mock-mode-banner"
 
-export function AppLayout({ children }: { children: React.ReactNode }) {
+// Enable mock mode for development/preview environments
+const ENABLE_MOCK_MODE = true // Set to false in production
+
+interface AppLayoutProps {
+  children: React.ReactNode
+}
+
+export function AppLayout({ children }: AppLayoutProps) {
   const pathname = usePathname()
   const isMobile = useMediaQuery("(max-width: 768px)")
-  const [isMenuOpen, setIsMenuOpen] = React.useState(false)
 
-  const toggleMenu = () => {
-    setIsMenuOpen(!isMenuOpen)
-  }
+  // Close sidebar on mobile when route changes
+  useEffect(() => {
+    if (isMobile) {
+      // This would be handled by the sidebar component internally
+    }
+  }, [pathname, isMobile])
+  const [searchQuery, setSearchQuery] = useState("")
 
-  const NavLink = ({
-    href,
-    children,
-    icon: Icon,
-  }: { href: string; children: React.ReactNode; icon: React.ElementType }) => {
-    const isActive = pathname === href
-
-    return (
-      <Link href={href} passHref>
-        <Button
-          variant="ghost"
-          className={cn(
-            "flex items-center gap-2",
-            isActive ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground",
-          )}
-        >
-          <Icon className="h-4 w-4" />
-          {children}
-        </Button>
-      </Link>
-    )
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (searchQuery.trim()) {
+      // Use proper Next.js navigation
+      window.location.href = `/wallet/${searchQuery.trim()}`
+    }
   }
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex h-14 items-center px-4">
-          <div className="mr-4 flex">
-            <Link href="/" className="flex items-center gap-2">
-              <SolanaLogo className="h-6 w-6" />
-              <span className="font-semibold hidden md:inline-block">Solana Forensics</span>
-            </Link>
-          </div>
+    <SidebarProvider>
+      <div className="flex min-h-screen">
+        <Sidebar variant="inset" className="border-r border-border/30">
+          <SidebarHeader>
+            <div className="flex items-center justify-center px-4 py-4">
+              <SolanaLogo height={28} subtitle="Monitoring | Forensics" />
+            </div>
+            <form onSubmit={handleSearch} className="px-2 pt-2 pb-4">
+              <div className="relative">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="search"
+                  placeholder="Search wallet address..."
+                  className="w-full pl-8"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
+            </form>
+          </SidebarHeader>
 
-          {isMobile ? (
-            <div className="flex flex-1 items-center justify-between space-x-2 md:justify-end">
-              <Button variant="ghost" size="icon" onClick={toggleMenu}>
-                <Menu className="h-5 w-5" />
-                <span className="sr-only">Toggle menu</span>
-              </Button>
-              <div className="flex items-center">
-                <ConnectionStatus />
-                <ModeToggle />
+          <SidebarContent>
+            <SidebarGroup>
+              <SidebarGroupLabel className="font-genos">Main</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild isActive={pathname === "/"}>
+                      <Link href="/">
+                        <Home className="mr-2 h-4 w-4" />
+                        <span>Dashboard</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild isActive={pathname.startsWith("/wallet")}>
+                      <Link href="/wallet">
+                        <Wallet className="mr-2 h-4 w-4" />
+                        <span>Wallet Analysis</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={pathname === "/transactions" || pathname.startsWith("/transaction/")}
+                    >
+                      <Link href="/transactions">
+                        <History className="mr-2 h-4 w-4" />
+                        <span>Transactions</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild isActive={pathname === "/investigations"}>
+                      <Link href="/investigations">
+                        <Bookmark className="mr-2 h-4 w-4" />
+                        <span>Investigations</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+
+            <SidebarSeparator />
+
+            <SidebarGroup>
+              <SidebarGroupLabel className="font-genos">Analysis</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild isActive={false}>
+                      <Link href="/wallet?tab=flow">
+                        <Network className="mr-2 h-4 w-4 text-[#14F195]" />
+                        <span>Transaction Flow</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild isActive={pathname === "/monitoring"}>
+                      <Link href="/monitoring">
+                        <BarChart2 className="mr-2 h-4 w-4 text-[#14F195]" />
+                        <span>Monitoring</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild isActive={false}>
+                      <Link href="/wallet?tab=entities">
+                        <Tag className="mr-2 h-4 w-4 text-[#9945FF]" />
+                        <span>Entity Labels</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild isActive={false}>
+                      <Link href="/reports">
+                        <FileText className="mr-2 h-4 w-4" />
+                        <span>Reports</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild isActive={false}>
+                      <Link href="/wallet?tab=funding">
+                        <BarChart2 className="mr-2 h-4 w-4 text-[#14F195]" />
+                        <span>Analytics</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+
+            <SidebarSeparator />
+
+            <SidebarGroup>
+              <SidebarGroupLabel className="font-genos">Team</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild isActive={false}>
+                      <Link href="/investigations">
+                        <Users className="mr-2 h-4 w-4" />
+                        <span>Collaborators</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          </SidebarContent>
+
+          <SidebarFooter>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={pathname === "/settings"}>
+                  <Link href="/settings">
+                    <Settings className="mr-2 h-4 w-4" />
+                    <span>Settings</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={pathname === "/help"}>
+                  <Link href="/">
+                    <HelpCircle className="mr-2 h-4 w-4" />
+                    <span>Help & Documentation</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+
+            <SidebarSeparator />
+
+            <div className="p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Avatar>
+                    <AvatarFallback>U</AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <p className="text-sm font-medium">User Name</p>
+                    <p className="text-xs text-muted-foreground">Investigator</p>
+                  </div>
+                </div>
+                <Button variant="ghost" size="icon" asChild>
+                  <Link href="/">
+                    <LogOut className="h-4 w-4" />
+                    <span className="sr-only">Log out</span>
+                  </Link>
+                </Button>
               </div>
             </div>
-          ) : (
-            <>
-              <div className="flex flex-1 items-center gap-1">
-                <NavLink href="/" icon={Home}>
-                  Home
-                </NavLink>
+          </SidebarFooter>
+        </Sidebar>
 
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      className="flex items-center gap-2 text-muted-foreground hover:text-foreground"
-                    >
-                      <Layers className="h-4 w-4" />
-                      Analyze
-                      <ChevronDown className="h-3 w-3 opacity-50" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className="w-48">
-                    <DropdownMenuItem asChild>
-                      <Link href="/wallet" className="flex items-center gap-2">
-                        <Wallet className="h-4 w-4" />
-                        Wallet Analysis
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link href="/transactions" className="flex items-center gap-2">
-                        <Network className="h-4 w-4" />
-                        Transaction Flows
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link href="/token" className="flex items-center gap-2">
-                        <FileText className="h-4 w-4" />
-                        Token Analysis
-                      </Link>
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-
-                <NavLink href="/entities" icon={Tag}>
-                  Entities
-                </NavLink>
-                <NavLink href="/investigations" icon={File}>
-                  Investigations
-                </NavLink>
-                <NavLink href="/monitoring" icon={AlertTriangle}>
-                  Monitoring
-                </NavLink>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <Button variant="ghost" size="icon" asChild>
-                  <Link href="/search">
-                    <Search className="h-5 w-5" />
-                    <span className="sr-only">Search</span>
-                  </Link>
+        <SidebarInset>
+          <header className="flex h-16 items-center gap-4 border-b border-border/30 px-6 backdrop-blur-sm">
+            <SidebarTrigger />
+            <ConnectionStatus />
+            <div className="flex-1" />
+            <div className="flex items-center gap-2">
+              <Link href="https://github.com/username/solana-forensics" target="_blank">
+                <Button variant="outline" size="icon">
+                  <Github className="h-4 w-4" />
+                  <span className="sr-only">GitHub</span>
                 </Button>
-
-                <Button variant="ghost" size="icon" asChild>
-                  <Link href="/notifications">
-                    <BellRing className="h-5 w-5" />
-                    <span className="sr-only">Notifications</span>
-                  </Link>
-                </Button>
-
-                <ConnectionStatus />
-                <ModeToggle />
-
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon">
-                      <Settings className="h-5 w-5" />
-                      <span className="sr-only">Settings</span>
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem asChild>
-                      <Link href="/settings">Settings</Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link href="/api-keys">API Keys</Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem asChild>
-                      <Link href="/help">
-                        <HelpCircle className="mr-2 h-4 w-4" />
-                        <span>Help & Documentation</span>
-                      </Link>
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-            </>
-          )}
-        </div>
-      </header>
-
-      {isMobile && isMenuOpen && (
-        <div className="fixed inset-0 top-14 z-40 bg-background border-t">
-          <nav className="container grid gap-2 p-4">
-            <Link href="/" className="flex items-center gap-2 py-2" onClick={toggleMenu}>
-              <Home className="h-4 w-4" />
-              <span>Home</span>
-            </Link>
-            <Link href="/wallet" className="flex items-center gap-2 py-2" onClick={toggleMenu}>
-              <Wallet className="h-4 w-4" />
-              <span>Wallet Analysis</span>
-            </Link>
-            <Link href="/transactions" className="flex items-center gap-2 py-2" onClick={toggleMenu}>
-              <Network className="h-4 w-4" />
-              <span>Transaction Flows</span>
-            </Link>
-            <Link href="/token" className="flex items-center gap-2 py-2" onClick={toggleMenu}>
-              <FileText className="h-4 w-4" />
-              <span>Token Analysis</span>
-            </Link>
-            <Link href="/entities" className="flex items-center gap-2 py-2" onClick={toggleMenu}>
-              <Tag className="h-4 w-4" />
-              <span>Entities</span>
-            </Link>
-            <Link href="/investigations" className="flex items-center gap-2 py-2" onClick={toggleMenu}>
-              <File className="h-4 w-4" />
-              <span>Investigations</span>
-            </Link>
-            <Link href="/monitoring" className="flex items-center gap-2 py-2" onClick={toggleMenu}>
-              <AlertTriangle className="h-4 w-4" />
-              <span>Monitoring</span>
-            </Link>
-            <Link href="/search" className="flex items-center gap-2 py-2" onClick={toggleMenu}>
-              <Search className="h-4 w-4" />
-              <span>Search</span>
-            </Link>
-            <Link href="/settings" className="flex items-center gap-2 py-2" onClick={toggleMenu}>
-              <Settings className="h-4 w-4" />
-              <span>Settings</span>
-            </Link>
-            <Link href="/help" className="flex items-center gap-2 py-2" onClick={toggleMenu}>
-              <HelpCircle className="h-4 w-4" />
-              <span>Help & Documentation</span>
-            </Link>
-          </nav>
-        </div>
-      )}
-
-      <main className="flex-1">{children}</main>
-    </div>
+              </Link>
+              <ModeToggle />
+            </div>
+          </header>
+          <main className="flex-1 overflow-auto p-6 gradient-background">
+            {ENABLE_MOCK_MODE && <MockModeBanner />}
+            {children}
+          </main>
+        </SidebarInset>
+      </div>
+    </SidebarProvider>
   )
 }
