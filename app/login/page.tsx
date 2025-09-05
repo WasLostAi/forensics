@@ -37,7 +37,8 @@ export default function LoginPage() {
         localStorage.setItem("wallet_address", walletAddress)
 
         // Check if admin wallet
-        if (walletAddress === "AuwUfiwsXA6VibDjR579HWLhDUUoa5s6T7i7KPyLUa9F") {
+        const adminWalletAddress = process.env.NEXT_PUBLIC_ADMIN_WALLET_ADDRESS
+        if (adminWalletAddress && walletAddress === adminWalletAddress) {
           localStorage.setItem("user_role", "admin")
         } else {
           localStorage.setItem("user_role", "user")
@@ -72,8 +73,9 @@ export default function LoginPage() {
   // Admin login function for testing
   const handleAdminLogin = () => {
     setLoading(true)
+    const adminWalletAddress = process.env.NEXT_PUBLIC_ADMIN_WALLET_ADDRESS || "AuwUfiwsXA6VibDjR579HWLhDUUoa5s6T7i7KPyLUa9F"
     localStorage.setItem("auth_token", "admin_token_" + Date.now())
-    localStorage.setItem("wallet_address", "AuwUfiwsXA6VibDjR579HWLhDUUoa5s6T7i7KPyLUa9F")
+    localStorage.setItem("wallet_address", adminWalletAddress)
     localStorage.setItem("user_role", "admin")
 
     setTimeout(() => {
