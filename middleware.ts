@@ -25,7 +25,8 @@ export async function middleware(request: NextRequest) {
 
   // Get wallet address from session if available
   const walletAddress = session?.user?.user_metadata?.wallet_address as string | undefined
-  const isAdmin = walletAddress === "AuwUfiwsXA6VibDjR579HWLhDUUoa5s6T7i7KPyLUa9F"
+  const adminWalletAddress = process.env.ADMIN_WALLET_ADDRESS
+  const isAdmin = adminWalletAddress && walletAddress === adminWalletAddress
 
   // Check if the route requires authentication
   const isProtectedRoute = protectedRoutes.some((route) => pathname.startsWith(route))

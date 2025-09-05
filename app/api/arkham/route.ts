@@ -6,7 +6,7 @@ async function makeArkhamRequest(endpoint: string, method = "GET", body?: any) {
   const apiSecret = process.env.ARKHAM_API_SECRET
 
   if (!apiKey || !apiSecret) {
-    return { error: "API credentials not configured" }
+    return { error: "API service temporarily unavailable" }
   }
 
   const baseUrl = "https://api.arkhamintelligence.com"
@@ -31,21 +31,28 @@ async function makeArkhamRequest(endpoint: string, method = "GET", body?: any) {
     clearTimeout(timeoutId)
 
     if (!response.ok) {
-      const errorText = await response.text()
-      return {
-        error: `API returned ${response.status}: ${errorText}`,
+      // Don't expose detailed API errors to client
+      const status = response.status
+      if (status === 401 || status === 403) {
+        return { error: "API authentication failed" }
+      } else if (status === 429) {
+        return { error: "API rate limit exceeded. Please try again later." }
+      } else if (status >= 500) {
+        return { error: "External API service error" }
+      } else {
+        return { error: "Invalid request parameters" }
       }
     }
 
     const data = await response.json()
     return data
   } catch (error: any) {
-    // Handle specific error types
+    // Handle specific error types without exposing internal details
     if (error.name === "AbortError") {
       return { error: "Request timed out" }
     }
 
-    // For network errors, return a more specific message
+    // For network errors, return a generic message
     if (error.message === "fetch failed") {
       return {
         error: "Network connection error. Please check your internet connection and try again.",
@@ -53,9 +60,10 @@ async function makeArkhamRequest(endpoint: string, method = "GET", body?: any) {
       }
     }
 
+    // Generic error for any other cases
     return {
-      error: `Request failed: ${error.message || "Unknown error"}`,
-      networkError: error.message === "fetch failed",
+      error: "Service temporarily unavailable",
+      networkError: false,
     }
   }
 }
