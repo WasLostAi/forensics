@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "security:audit": "npm audit && echo '\\n=== Security Analysis ===' && node scripts/security-check.js",
+    "security:headers": "node scripts/check-security-headers.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",
