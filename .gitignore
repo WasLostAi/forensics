@@ -25,3 +25,11 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Security reports (sensitive information)
+security-audit-report.json
+*.security.log
+
+# Temporary files
+/tmp
+.temp
