@@ -192,7 +192,7 @@ export function EntityLabelForm({ entityId, isOpen, onClose }: EntityLabelFormPr
               value={formData.address}
               onChange={(e) => setFormData({ ...formData, address: e.target.value })}
               className="col-span-3"
-              placeholder="Solana wallet address"
+              placeholder="Blockchain wallet address"
               disabled={!!entity}
             />
           </div>

@@ -51,7 +51,7 @@ const initialFeatureData: FeatureData[] = [
   {
     id: "wallet-analysis",
     title: "Analyze a Wallet",
-    description: "Search and analyze your first Solana wallet address",
+    description: "Search and analyze your first blockchain wallet address",
     iconType: "wallet",
     link: "/wallet",
     completed: false,
@@ -192,7 +192,7 @@ export function FeatureChecklist() {
           <div className="mt-6 rounded-md bg-[#14F195]/10 p-4 border border-[#14F195]/30">
             <p className="font-medium text-[#14F195]">Congratulations! You've explored all features.</p>
             <p className="text-sm text-muted-foreground mt-1">
-              You're now ready to use the full power of the Solana Forensic Toolkit.
+              You're now ready to use the full power of the Blockchain Forensic Toolkit.
             </p>
           </div>
         )}

@@ -165,7 +165,7 @@ export function TokenCreationMonitor() {
           <Card>
             <CardHeader>
               <CardTitle className="text-lg font-genos">New Token Monitoring</CardTitle>
-              <CardDescription>Recently created tokens on Solana blockchain</CardDescription>
+              <CardDescription>Recently created tokens on blockchain</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="rounded-lg soft-border overflow-hidden bg-card/80 backdrop-blur-sm">

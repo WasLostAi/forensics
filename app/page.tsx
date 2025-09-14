@@ -40,11 +40,11 @@ export default function Home() {
               <Wallet className="h-5 w-5 text-[#9945FF]" />
               Wallet Analysis
             </CardTitle>
-            <CardDescription>Analyze any Solana wallet</CardDescription>
+            <CardDescription>Analyze any blockchain wallet</CardDescription>
           </CardHeader>
           <CardContent>
             <p className="text-sm text-muted-foreground mb-4">
-              Track transaction history, balance changes, and risk factors for any Solana wallet address.
+              Track transaction history, balance changes, and risk factors for any blockchain wallet address.
             </p>
             <Button asChild className="w-full bg-[#9945FF] hover:bg-[#9945FF]/90">
               <Link href="/wallet">Analyze Wallet</Link>
@@ -84,7 +84,7 @@ export default function Home() {
           </CardHeader>
           <CardContent>
             <p className="text-sm text-muted-foreground mb-4">
-              Label and identify exchanges, projects, and other entities across the Solana ecosystem.
+              Label and identify exchanges, projects, and other entities across blockchain ecosystems.
             </p>
             <Button
               asChild
@@ -122,7 +122,7 @@ export default function Home() {
       <Card>
         <CardHeader>
           <CardTitle className="font-genos">Quick Search</CardTitle>
-          <CardDescription>Enter a Solana wallet address, transaction ID, or token address</CardDescription>
+          <CardDescription>Enter a blockchain wallet address, transaction ID, or token address</CardDescription>
         </CardHeader>
         <CardContent>
           <Suspense fallback={<div className="h-20 flex items-center justify-center">Loading search...</div>}>
@@ -157,14 +157,14 @@ export default function Home() {
         <Card>
           <CardHeader>
             <CardTitle className="font-genos">Getting Started</CardTitle>
-            <CardDescription>Learn how to use Solana Wallet Forensics</CardDescription>
+            <CardDescription>Learn how to use Blockchain Wallet Forensics</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
               <div className="rounded-md bg-muted p-4">
                 <h3 className="font-medium">1. Search for a wallet address</h3>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Enter any Solana wallet address to begin your investigation
+                  Enter any blockchain wallet address to begin your investigation
                 </p>
               </div>
               <div className="rounded-md bg-muted p-4">

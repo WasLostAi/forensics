@@ -34,8 +34,8 @@ const genos = Genos({
 })
 
 export const metadata: Metadata = {
-  title: "Solana Forensic Toolkit",
-  description: "A comprehensive tool for Solana blockchain forensic analysis",
+  title: "Blockchain Forensic Toolkit",
+  description: "A comprehensive tool for blockchain forensic analysis",
     generator: 'v0.dev'
 }
 

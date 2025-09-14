@@ -89,7 +89,7 @@ export default function LoginPage() {
           <div className="flex justify-center mb-4">
             <BlockchainLogo height={40} subtitle="Forensics" />
           </div>
-          <CardTitle className="text-2xl">Solana Wallet Forensics</CardTitle>
+          <CardTitle className="text-2xl">Blockchain Wallet Forensics</CardTitle>
           <CardDescription>Connect your wallet to access the platform</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -103,7 +103,7 @@ export default function LoginPage() {
           <div className="space-y-4">
             <div className="rounded-md bg-muted p-4 text-center">
               <Wallet className="mx-auto h-8 w-8 mb-2 text-primary" />
-              <p className="text-sm">Connect your Solana wallet to access the platform</p>
+              <p className="text-sm">Connect your wallet to access the platform</p>
             </div>
             <Button onClick={handleWalletLogin} className="w-full" disabled={loading}>
               {loading ? "Connecting..." : "Connect Phantom Wallet"}

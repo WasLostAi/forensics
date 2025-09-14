@@ -9,7 +9,7 @@ export default function TransactionsPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold mb-2">Transaction Search</h1>
-        <p className="text-muted-foreground">Search for any Solana transaction by signature</p>
+        <p className="text-muted-foreground">Search for any blockchain transaction by signature</p>
       </div>
 
       <Card>

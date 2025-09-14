@@ -22,7 +22,7 @@ export function Navbar() {
       <div className="container mx-auto px-4 py-3 flex items-center justify-between">
         <Link href="/" className="font-bold text-xl flex items-center gap-2">
           <Network className="h-5 w-5" />
-          <span>SolanaForensics</span>
+          <span>BlockchainForensics</span>
         </Link>
 
         <nav className="hidden md:flex items-center gap-6">

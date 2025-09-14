@@ -2,7 +2,7 @@ import type { Metadata } from "next"
 import { AnalyticsView } from "@/components/analytics-view"
 
 export const metadata: Metadata = {
-  title: "Analytics | Solana Forensics",
+  title: "Analytics | Blockchain Forensics",
   description: "Forensic analytics and insights for blockchain transactions",
 }
 

@@ -4,7 +4,7 @@ import { EntityLabelBulkOperations } from "@/components/entity-label-bulk-operat
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 export const metadata: Metadata = {
-  title: "Bulk Entity Operations | Solana Forensics",
+  title: "Bulk Entity Operations | Blockchain Forensics",
   description: "Perform bulk operations on entities such as labeling, tagging, and categorization.",
 }
 

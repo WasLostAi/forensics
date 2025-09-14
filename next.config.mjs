@@ -12,7 +12,7 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-  // Webpack configuration to handle Solana dependencies
+  // Webpack configuration to handle Node.js dependencies
   webpack: (config, { isServer }) => {
     if (!isServer) {
       config.resolve.fallback = {
@@ -42,7 +42,7 @@ const nextConfig = {
   },
   // Only include public environment variables
   env: {
-    NEXT_PUBLIC_QUICKNODE_RPC_URL: process.env.NEXT_PUBLIC_QUICKNODE_RPC_URL,
+    NEXT_PUBLIC_RPC_URL: process.env.NEXT_PUBLIC_RPC_URL,
   },
 }
 

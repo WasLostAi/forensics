@@ -260,7 +260,7 @@ export function TransactionList({ walletAddress }: TransactionListProps) {
                             rel="noopener noreferrer"
                           >
                             <ExternalLink className="h-4 w-4" />
-                            <span className="sr-only">View on Solana Explorer</span>
+                            <span className="sr-only">View on Block Explorer</span>
                           </a>
                         </Button>
                       </TableCell>

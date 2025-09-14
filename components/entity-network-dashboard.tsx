@@ -54,7 +54,7 @@ export function EntityNetworkDashboard() {
       <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold">Entity Network Explorer</h2>
-          <p className="text-muted-foreground">Visualize connections between entities on the Solana blockchain</p>
+          <p className="text-muted-foreground">Visualize connections between entities on the blockchain</p>
         </div>
 
         <form onSubmit={handleSearch} className="flex w-full md:w-auto gap-2">
