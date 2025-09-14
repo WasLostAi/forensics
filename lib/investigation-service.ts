@@ -63,9 +63,9 @@ function getMockInvestigations(): Investigation[] {
     {
       id: "3",
       title: "Cross-Chain Fund Tracking",
-      description: "Following funds transferred between Solana and Ethereum via bridges",
+      description: "Following funds transferred between different blockchains via bridges",
       status: "in-progress",
-      addresses: ["BridgeXYZ123SolanaToEthereumTransferWalletAddress"],
+      addresses: ["BridgeXYZ123BlockchainTransferWalletAddress"],
       tags: ["cross-chain", "bridge", "medium-risk"],
       created_at: new Date(Date.now() - 172800000).toISOString(),
       updated_at: new Date(Date.now() - 86400000).toISOString(),

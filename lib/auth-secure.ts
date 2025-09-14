@@ -106,10 +106,10 @@ export class SecureAuth {
   }
 
   /**
-   * Validate wallet address format (basic Solana address validation)
+   * Validate wallet address format (basic blockchain address validation)
    */
-  static isValidSolanaAddress(address: string): boolean {
-    // Basic validation for Solana addresses (32-44 characters, base58)
+  static isValidBlockchainAddress(address: string): boolean {
+    // Basic validation for blockchain addresses (32-44 characters, base58)
     const base58Regex = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/
     return base58Regex.test(address)
   }

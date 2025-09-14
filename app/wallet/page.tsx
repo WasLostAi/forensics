@@ -10,7 +10,7 @@ export default function WalletPage() {
       <Card className="mb-8">
         <CardHeader>
           <CardTitle>Enter a Wallet Address</CardTitle>
-          <CardDescription>Enter a Solana wallet address to begin your analysis</CardDescription>
+          <CardDescription>Enter a blockchain wallet address to begin your analysis</CardDescription>
         </CardHeader>
         <CardContent>
           <Suspense fallback={<div className="h-20 flex items-center justify-center">Loading search...</div>}>

@@ -97,7 +97,7 @@ export function TransactionFlowVisualization({
   const initialNodes: Node[] = useMemo(() => {
     return filteredNodes.map((node) => {
       // Determine node color based on group
-      let color = "#9945FF" // Default Solana purple
+      let color = "#4F46E5" // Default purple color
       if (node.group === 1) {
         color = "#14F195" // Solana green for main wallet
       } else if (node.group === 2) {

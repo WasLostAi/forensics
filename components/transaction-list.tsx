@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Badge } from "@/components/ui/badge"
 import { ChevronDown, Filter, ArrowUpDown, ExternalLink, AlertCircle, Loader2 } from "lucide-react"
-import { getTransactionHistory } from "@/lib/solana"
+import { getTransactionHistory } from "@/lib/blockchain"
 import { formatSol, formatDate, shortenAddress } from "@/lib/utils"
 import type { Transaction } from "@/types/transaction"
 import { useSettings } from "@/contexts/settings-context"
@@ -260,7 +260,7 @@ export function TransactionList({ walletAddress }: TransactionListProps) {
                             rel="noopener noreferrer"
                           >
                             <ExternalLink className="h-4 w-4" />
-                            <span className="sr-only">View on Solana Explorer</span>
+                            <span className="sr-only">View on Block Explorer</span>
                           </a>
                         </Button>
                       </TableCell>

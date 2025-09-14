@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { Badge } from "@/components/ui/badge"
-import { isConnected } from "@/lib/solana"
+import { isConnected } from "@/lib/blockchain"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { AlertCircle, CheckCircle, AlertTriangle } from "lucide-react"
 import { useSettings } from "@/contexts/settings-context"
@@ -23,7 +23,7 @@ export function ConnectionStatus() {
       setErrorMessage(null)
 
       try {
-        console.log("Checking Solana connection status...")
+        console.log("Checking blockchain connection status...")
         const status = await isConnected(rpcUrl)
         console.log(`Connection status: ${status ? "Connected" : "Not connected"}`)
         setConnected(status)

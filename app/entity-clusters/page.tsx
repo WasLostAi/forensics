@@ -1,7 +1,7 @@
 import { EntityClustersView } from "@/components/entity-clusters-view"
 
 export const metadata = {
-  title: "Entity Clusters | Solana Forensics",
+  title: "Entity Clusters | Blockchain Forensics",
   description: "Analyze groups of entities with similar behavior patterns",
 }
 

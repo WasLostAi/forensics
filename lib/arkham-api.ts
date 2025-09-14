@@ -121,7 +121,7 @@ export async function fetchArkhamTransactionFlow(
 
 // Generate mock transaction flow data for a given wallet address
 function generateMockTransactionFlowData(walletAddress: string): TransactionFlowData {
-  // Create some mock addresses that look like Solana addresses
+  // Create some mock addresses that look like blockchain addresses
   const mockAddresses = [
     "5xot8nBJKNHWgV6ZeBZH7yFknBQh4ucNiYZ3RVs2vQKn",
     "7ZvMBQvQJpA25NM9pMBUwT7JUQyqj3uZZbGxNvYLwwqF",

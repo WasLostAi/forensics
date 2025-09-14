@@ -43,7 +43,7 @@ import {
   Shield,
 } from "lucide-react"
 import { useMediaQuery } from "@/hooks/use-media-query"
-import { SolanaLogo } from "@/components/solana-logo"
+import { BlockchainLogo } from "@/components/blockchain-logo"
 import { ConnectionStatus } from "@/components/connection-status"
 import { MockModeBanner } from "@/components/mock-mode-banner"
 import { AuthCheck } from "@/components/auth-check"
@@ -106,7 +106,7 @@ export function AppLayout({ children }: AppLayoutProps) {
           <Sidebar variant="inset" className="border-r border-border/30">
             <SidebarHeader>
               <div className="flex items-center justify-center px-4 py-4">
-                <SolanaLogo height={28} subtitle="Monitoring | Forensics" />
+                <BlockchainLogo height={28} subtitle="Monitoring | Forensics" />
               </div>
               <form onSubmit={handleSearch} className="px-2 pt-2 pb-4">
                 <div className="relative">

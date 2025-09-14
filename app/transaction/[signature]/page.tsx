@@ -29,7 +29,7 @@ export default function TransactionPage({ params }: TransactionPageProps) {
         <Button variant="ghost" size="icon" asChild className="ml-2">
           <a href={`https://explorer.solana.com/tx/${signature}`} target="_blank" rel="noopener noreferrer">
             <ExternalLink className="h-4 w-4" />
-            <span className="sr-only">View on Solana Explorer</span>
+            <span className="sr-only">View on Block Explorer</span>
           </a>
         </Button>
       </p>

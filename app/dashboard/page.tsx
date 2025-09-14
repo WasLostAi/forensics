@@ -5,8 +5,8 @@ import { Button } from "@/components/ui/button"
 import { Search, BarChart2, Tag, Bookmark, Shield, Settings } from "lucide-react"
 
 export const metadata: Metadata = {
-  title: "Dashboard | Solana Forensic Toolkit",
-  description: "Your Solana Forensic Toolkit dashboard",
+  title: "Dashboard | Blockchain Forensic Toolkit",
+  description: "Your Blockchain Forensic Toolkit dashboard",
 }
 
 export default function DashboardPage() {
@@ -22,7 +22,7 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <p>
-              Perform in-depth analysis of any Solana wallet address, including transaction history, risk scoring, and
+              Perform in-depth analysis of any blockchain wallet address, including transaction history, risk scoring, and
               entity identification.
             </p>
           </CardContent>
@@ -63,7 +63,7 @@ export default function DashboardPage() {
             <CardDescription>Manage entity labels</CardDescription>
           </CardHeader>
           <CardContent>
-            <p>Create, edit, and manage entity labels for wallets, exchanges, and projects on the Solana blockchain.</p>
+            <p>Create, edit, and manage entity labels for wallets, exchanges, and projects on blockchain networks.</p>
           </CardContent>
           <CardFooter>
             <Button asChild>
@@ -117,7 +117,7 @@ export default function DashboardPage() {
             <CardDescription>Configure your toolkit</CardDescription>
           </CardHeader>
           <CardContent>
-            <p>Manage your API credentials, preferences, and account settings for the Solana Forensic Toolkit.</p>
+            <p>Manage your API credentials, preferences, and account settings for the Blockchain Forensic Toolkit.</p>
           </CardContent>
           <CardFooter>
             <Button asChild>

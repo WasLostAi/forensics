@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { AlertTriangle, Info, Clock, DollarSign, RefreshCcw } from "lucide-react"
 import { shortenAddress } from "@/lib/utils"
-import { getTransactionFlowData } from "@/lib/solana"
+import { getTransactionFlowData } from "@/lib/blockchain"
 import { identifyTransactionClusters } from "@/lib/analysis"
 
 interface TransactionClustersProps {

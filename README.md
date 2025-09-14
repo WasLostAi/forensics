@@ -1,6 +1,6 @@
-# Solana Forensics Toolkit
+# Blockchain Forensics Toolkit
 
-A comprehensive tool for Solana blockchain forensic analysis, enabling precise tracking and visualization of on-chain fund movements.
+A comprehensive tool for blockchain forensic analysis, enabling precise tracking and visualization of on-chain fund movements.
 
 ## Features
 
@@ -14,11 +14,11 @@ A comprehensive tool for Solana blockchain forensic analysis, enabling precise t
 ### Prerequisites
 
 - Node.js 18.18.0 or later
-- A QuickNode account with a Solana endpoint (see [QuickNode Setup](./QUICKNODE_SETUP.md))
+- A QuickNode account with a blockchain endpoint (see [QuickNode Setup](./QUICKNODE_SETUP.md))
 
 ### Installation
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/solana-forensics.git
-   cd solana-forensics
+   git clone https://github.com/yourusername/blockchain-forensics.git
+   cd blockchain-forensics

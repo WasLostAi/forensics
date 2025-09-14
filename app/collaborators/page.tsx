@@ -2,7 +2,7 @@ import type { Metadata } from "next"
 import { CollaboratorsView } from "@/components/collaborators-view"
 
 export const metadata: Metadata = {
-  title: "Collaborators | Solana Forensics",
+  title: "Collaborators | Blockchain Forensics",
   description: "Manage team members and collaborators for your forensic investigations",
 }
 

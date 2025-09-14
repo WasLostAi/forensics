@@ -1,22 +1,21 @@
 "use client"
 
 import { useTheme } from "next-themes"
-import Image from "next/image"
 import { useEffect, useState } from "react"
 
-interface SolanaLogoProps {
+interface BlockchainLogoProps {
   className?: string
   height?: number
   showSubtitle?: boolean
   subtitle?: string
 }
 
-export function SolanaLogo({
+export function BlockchainLogo({
   className,
   height = 24,
   showSubtitle = true,
   subtitle = "Monitoring | Forensics",
-}: SolanaLogoProps) {
+}: BlockchainLogoProps) {
   const { resolvedTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
 
@@ -29,32 +28,29 @@ export function SolanaLogo({
     return <div className={`h-[${height}px] w-[${height * 6.5}px] bg-transparent`} />
   }
 
-  // Calculate subtitle size proportionally to the SOLANA logo
-  // This ensures consistent proportions between sidebar and headline
+  // Calculate subtitle size proportionally to the logo text
   const subtitleFontSize = Math.max(Math.round(height * 0.6), 14) // Minimum size of 14px
 
-  // Always use the white version of the logo with an overlay
   return (
     <div className={className}>
       <div className="flex flex-col items-center">
         <div className="relative">
-          <Image
-            src="/images/solana-wordmark.svg"
-            alt="Solana"
-            width={height * 6.5}
-            height={height}
-            className="h-auto w-auto brightness-0 invert opacity-90"
-          />
+          <div 
+            className="font-bold tracking-wider text-white opacity-90"
+            style={{ fontSize: `${height}px` }}
+          >
+            FORENSICS
+          </div>
           {/* Add a subtle glow effect */}
           <div
-            className="absolute inset-0 bg-gradient-to-r from-[#9945FF]/10 to-[#14F195]/10 mix-blend-overlay rounded-sm"
+            className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-purple-500/10 mix-blend-overlay rounded-sm"
             style={{ filter: "blur(2px)" }}
           />
         </div>
 
         {showSubtitle && (
           <div
-            className="text-[#9945FF] font-genos font-bold tracking-wider mt-1 whitespace-nowrap"
+            className="text-blue-500 font-bold tracking-wider mt-1 whitespace-nowrap"
             style={{ fontSize: `${subtitleFontSize}px` }}
           >
             {subtitle}

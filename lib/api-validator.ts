@@ -205,8 +205,8 @@ export class ApiValidator {
         break
 
       case 'wallet':
-        if (typeof value !== 'string' || !SecureAuth.isValidSolanaAddress(value)) {
-          return { success: false, error: 'must be a valid Solana wallet address' }
+        if (typeof value !== 'string' || !SecureAuth.isValidBlockchainAddress(value)) {
+          return { success: false, error: 'must be a valid blockchain wallet address' }
         }
         break
 
