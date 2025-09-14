@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { AlertCircle, Wallet } from "lucide-react"
-import { SolanaLogo } from "@/components/solana-logo"
+import { BlockchainLogo } from "@/components/blockchain-logo"
 
 export default function LoginPage() {
   const router = useRouter()
@@ -87,7 +87,7 @@ export default function LoginPage() {
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-2 text-center">
           <div className="flex justify-center mb-4">
-            <SolanaLogo height={40} subtitle="Forensics" />
+            <BlockchainLogo height={40} subtitle="Forensics" />
           </div>
           <CardTitle className="text-2xl">Solana Wallet Forensics</CardTitle>
           <CardDescription>Connect your wallet to access the platform</CardDescription>

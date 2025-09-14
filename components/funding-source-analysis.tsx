@@ -8,7 +8,7 @@ import { Progress } from "@/components/ui/progress"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend } from "recharts"
 import { AlertTriangle } from "lucide-react"
-import { getTransactionFlowData } from "@/lib/solana"
+import { getTransactionFlowData } from "@/lib/blockchain"
 import { analyzeFundingSources } from "@/lib/analysis"
 import { shortenAddress } from "@/lib/utils"
 

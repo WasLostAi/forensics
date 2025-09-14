@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Wallet, Network, Tag, BarChart2 } from "lucide-react"
 import Link from "next/link"
-import { SolanaLogo } from "@/components/solana-logo"
+import { BlockchainLogo } from "@/components/blockchain-logo"
 import { FeatureChecklist } from "@/components/feature-checklist"
 
 export default function Home() {
@@ -26,7 +26,7 @@ export default function Home() {
     <div className="space-y-8">
       <div>
         <div className="flex items-center justify-center mb-6">
-          <SolanaLogo height={40} subtitle="Monitoring | Forensics" />
+          <BlockchainLogo height={40} subtitle="Monitoring | Forensics" />
         </div>
         <p className="text-center text-muted-foreground">
           A comprehensive tool for tracking and visualizing on-chain fund movements

@@ -7,7 +7,7 @@ import { Progress } from "@/components/ui/progress"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { AlertTriangle, CheckCircle, Users, Wallet, ArrowRightLeft } from "lucide-react"
-import { detectWalletClusters, detectBundledRug, checkLiquidityRemoval, getTokenHolders } from "@/lib/solana"
+import { detectWalletClusters, detectBundledRug, checkLiquidityRemoval, getTokenHolders } from "@/lib/blockchain"
 import { HolderDistribution } from "@/components/holder-distribution"
 
 interface TokenAnalysisProps {

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { Badge } from "@/components/ui/badge"
-import { isConnected } from "@/lib/solana"
+import { isConnected } from "@/lib/blockchain"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { AlertCircle, CheckCircle, AlertTriangle } from "lucide-react"
 import { useSettings } from "@/contexts/settings-context"

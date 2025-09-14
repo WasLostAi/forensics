@@ -10,7 +10,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { AlertTriangle, Search, ArrowUpDown, Eye, Clock, DollarSign, AlertCircle } from "lucide-react"
 import { RiskScoringService } from "@/lib/risk-scoring-service"
-import { getTransactionFlowData } from "@/lib/solana"
+import { getTransactionFlowData } from "@/lib/blockchain"
 import type { TransactionRiskScore } from "@/types/risk"
 
 interface TransactionRiskAnalysisProps {
