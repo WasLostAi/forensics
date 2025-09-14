@@ -1,6 +1,6 @@
 // Dynamic imports for Solana libraries to avoid build issues
 import type { Connection, PublicKey as PublicKeyType, ParsedTransactionWithMeta } from "@solana/web3.js"
-import type { Transaction } from "@/types/transaction"
+import type { Transaction } from "../types/transaction"
 
 // Initialize connection lazily to avoid SSR issues
 let connection: Connection | null = null
@@ -231,7 +231,7 @@ function processTransaction(tx: ParsedTransactionWithMeta, walletAddress: string
 
     // Default values
     let amount = 0
-    let type = "other"
+    let type: "transfer" | "other" = "other"
     let source = ""
     let destination = ""
     let program = "unknown"
@@ -252,18 +252,7 @@ function processTransaction(tx: ParsedTransactionWithMeta, walletAddress: string
         }
       }
 
-      // If no transfer found but there are token program instructions, mark as swap
-      if (type === "other") {
-        for (const ix of instructions) {
-          if ("program" in ix && ix.program === "spl-token") {
-            type = "swap"
-            program = "spl-token"
-            break
-          }
-        }
-      }
-
-      // If still no specific type found, use the first instruction's program
+      // If no transfer found, use the first instruction's program
       if (program === "unknown" && instructions.length > 0) {
         const firstIx = instructions[0]
         if ("program" in firstIx) {
