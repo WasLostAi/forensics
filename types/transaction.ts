@@ -4,7 +4,7 @@ export interface Transaction {
   status: "confirmed" | "failed"
   fee: number
   amount: number
-  type: "transfer" | "swap" | "other"
+  type: "transfer" | "other"
   source: string
   destination: string
   program: string
