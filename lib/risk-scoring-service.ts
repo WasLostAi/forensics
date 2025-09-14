@@ -70,7 +70,7 @@ export class RiskScoringService {
     "wasabi_wallet",
     "samourai_wallet",
     "coinjoin",
-    "solana_mixer",
+    "crypto_mixer",
     "monero_bridge",
     "zcash_bridge",
   ]

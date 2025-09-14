@@ -15,9 +15,9 @@ const CACHE_TTL = {
 }
 
 // In a real implementation, these functions would make API calls to a backend service
-// that interacts with the Solana blockchain and a database
+// that interacts with the blockchain and a database
 
-// Mock function for fetching transaction flow data from Solana
+// Mock function for fetching transaction flow data from blockchain
 async function getTransactionFlowData(walletAddress: string, date?: Date, minAmount = 0): Promise<TransactionFlowData> {
   // Simulate API call
   await new Promise((resolve) => setTimeout(resolve, 500))
@@ -71,7 +71,7 @@ export async function fetchTransactions(walletAddress: string, page = 1, pageSiz
   // Actual API call would go here
   await new Promise((resolve) => setTimeout(resolve, 1000))
 
-  // In a real implementation, this would fetch from the Solana blockchain
+  // In a real implementation, this would fetch from the blockchain
   return []
 }
 
@@ -90,12 +90,12 @@ export async function fetchTransactionFlowData(
       } catch (error) {
         console.error("Failed to fetch transaction flow data from Arkham:", error)
 
-        // Try to use the actual Solana data as fallback
+        // Try to use the actual blockchain data as fallback
         try {
           const data = await getTransactionFlowData(walletAddress, date, minAmount)
           return data
         } catch (fallbackError) {
-          console.error("Failed to fetch transaction flow data from Solana:", fallbackError)
+          console.error("Failed to fetch transaction flow data from blockchain:", fallbackError)
           throw new Error("Failed to fetch transaction flow data from all sources")
         }
       }

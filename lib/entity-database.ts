@@ -1,5 +1,5 @@
 /**
- * Database of known Solana entities including exchanges, projects, and other services
+ * Database of known blockchain entities including exchanges, projects, and other services
  */
 
 export interface EntityInfo {
@@ -102,18 +102,18 @@ export const KNOWN_ENTITIES: EntityInfo[] = [
   },
   {
     address: "7vfCXTUXx5WJV5JADk17DUJ4ksgau7utNKj4b963voxs",
-    name: "Solana Foundation",
+    name: "Blockchain Foundation",
     category: "project",
-    description: "Solana Foundation wallet",
-    url: "https://solana.com",
+    description: "Blockchain Foundation wallet",
+    url: "https://blockchain.org",
     riskLevel: "low",
     tags: ["foundation"],
   },
   {
     address: "SysvarC1ock11111111111111111111111111111111",
-    name: "Solana Clock Sysvar",
+    name: "System Clock Variable",
     category: "contract",
-    description: "Solana system clock variable",
+    description: "System clock variable",
     riskLevel: "low",
     tags: ["system"],
   },
@@ -121,9 +121,9 @@ export const KNOWN_ENTITIES: EntityInfo[] = [
   // Known mixers/tumblers
   {
     address: "EXnGBBSamqzd3uxEdRLUiYzjJkTwQyorAaFXdfteuGXe",
-    name: "Tornado Cash Solana",
+    name: "Tornado Cash Mixer",
     category: "mixer",
-    description: "Suspected Tornado Cash implementation on Solana",
+    description: "Suspected Tornado Cash implementation",
     riskLevel: "high",
     tags: ["mixer", "privacy", "sanctioned"],
   },
@@ -131,7 +131,7 @@ export const KNOWN_ENTITIES: EntityInfo[] = [
     address: "CJsLwbP1iu5DuUikHEJnLfANgKy6stB2uFgvBBHoyxwz",
     name: "Cyclos Mixer",
     category: "mixer",
-    description: "Suspected cryptocurrency mixer on Solana",
+    description: "Suspected cryptocurrency mixer",
     riskLevel: "high",
     tags: ["mixer", "privacy"],
   },

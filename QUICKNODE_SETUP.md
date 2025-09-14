@@ -1,6 +1,6 @@
-# Setting up QuickNode for Solana Forensics
+# Setting up QuickNode for Blockchain Forensics
 
-This guide will help you set up your QuickNode endpoint for use with the Solana Forensics application.
+This guide will help you set up your QuickNode endpoint for use with the Blockchain Forensics application.
 
 ## 1. Create a QuickNode Account
 
@@ -10,10 +10,10 @@ If you don't already have a QuickNode account:
 2. Sign up for an account
 3. Verify your email address
 
-## 2. Create a Solana Endpoint
+## 2. Create a Blockchain Endpoint
 
 1. From your QuickNode dashboard, click "Create an endpoint"
-2. Select "Solana" as the blockchain
+2. Select your preferred blockchain (Ethereum, Bitcoin, etc.) as the blockchain
 3. Choose "Mainnet" as the network
 4. Select your preferred plan (the Basic plan should be sufficient for initial use)
 5. Choose a region closest to your deployment location
