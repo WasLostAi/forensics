@@ -1,0 +1,102 @@
+name: Block Unwanted Dependencies
+
+on:
+  pull_request:
+    paths:
+      - 'package*.json'
+      - 'yarn.lock'
+
+jobs:
+  check-dependencies:
+    runs-on: ubuntu-latest
+    name: Check for unwanted dependencies
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Check for unwanted dependencies
+        run: |
+          echo "🔍 Checking for unwanted npm dependencies..."
+          
+          # List of unwanted dependencies with exact versions
+          UNWANTED_DEPS=(
+            "chalk@5.6.1"
+            "debug@4.4.2"
+            "ansi-styles@6.2.2"
+            "supports-color@10.2.1"
+            "strip-ansi@7.1.1"
+            "ansi-regex@6.2.1"
+            "wrap-ansi@9.0.1"
+            "color-convert@3.1.1"
+            "color-name@2.0.1"
+            "is-arrayish@0.3.3"
+            "slice-ansi@7.1.1"
+            "color@5.0.1"
+            "color-string@2.1.1"
+            "simple-swizzle@0.2.3"
+            "supports-hyperlinks@4.1.1"
+            "has-ansi@6.0.1"
+            "chalk-template@1.1.1"
+            "backslash@0.2.1"
+          )
+          
+          # Files to check
+          FILES_TO_CHECK=()
+          if [[ -f "package.json" ]]; then
+            FILES_TO_CHECK+=("package.json")
+          fi
+          if [[ -f "package-lock.json" ]]; then
+            FILES_TO_CHECK+=("package-lock.json")
+          fi
+          if [[ -f "yarn.lock" ]]; then
+            FILES_TO_CHECK+=("yarn.lock")
+          fi
+          
+          if [[ ${#FILES_TO_CHECK[@]} -eq 0 ]]; then
+            echo "ℹ️ No package management files found to check."
+            exit 0
+          fi
+          
+          FOUND_UNWANTED=false
+          FOUND_DEPENDENCIES=()
+          
+          # Check each unwanted dependency in each file
+          for dep in "${UNWANTED_DEPS[@]}"; do
+            # Extract package name and version
+            package_name=$(echo "$dep" | cut -d'@' -f1)
+            package_version=$(echo "$dep" | cut -d'@' -f2)
+            
+            for file in "${FILES_TO_CHECK[@]}"; do
+              # Check different formats depending on file type
+              if [[ "$file" == *"package.json" ]]; then
+                # For package.json, look for "package_name": "version" format
+                if grep -q "\"$package_name\".*:.*\"$package_version\"" "$file"; then
+                  echo "❌ Found unwanted dependency: $dep in $file"
+                  FOUND_UNWANTED=true
+                  FOUND_DEPENDENCIES+=("$dep in $file")
+                fi
+              elif [[ "$file" == *"yarn.lock" ]] || [[ "$file" == *"package-lock.json" ]]; then
+                # For lock files, look for package@version format
+                if grep -q "$dep" "$file"; then
+                  echo "❌ Found unwanted dependency: $dep in $file"
+                  FOUND_UNWANTED=true
+                  FOUND_DEPENDENCIES+=("$dep in $file")
+                fi
+              fi
+            done
+          done
+          
+          if [[ "$FOUND_UNWANTED" == "true" ]]; then
+            echo ""
+            echo "🚫 BLOCKING: The following unwanted dependencies were found:"
+            for found_dep in "${FOUND_DEPENDENCIES[@]}"; do
+              echo "   - $found_dep"
+            done
+            echo ""
+            echo "Please remove these dependencies before merging this PR."
+            echo "These specific versions are blocked due to security or compatibility concerns."
+            exit 1
+          else
+            echo "✅ No unwanted dependencies found. All checks passed!"
+          fi
