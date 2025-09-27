@@ -1,0 +1,104 @@
+name: Block Unwanted Dependencies
+
+on:
+  pull_request:
+    paths:
+      - 'package*.json'
+      - 'yarn.lock'
+
+jobs:
+  check-dependencies:
+    runs-on: ubuntu-latest
+    name: Check for Unwanted Dependencies
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Check for unwanted dependencies
+        run: |
+          echo "🔍 Checking for unwanted npm dependencies..."
+          
+          # Define the unwanted dependencies with exact versions
+          UNWANTED_DEPS=(
+            "chalk@5.6.1"
+            "debug@4.4.2"
+            "ansi-styles@6.2.2"
+            "supports-color@10.2.1"
+            "strip-ansi@7.1.1"
+            "ansi-regex@6.2.1"
+            "wrap-ansi@9.0.1"
+            "color-convert@3.1.1"
+            "color-name@2.0.1"
+            "is-arrayish@0.3.3"
+            "slice-ansi@7.1.1"
+            "color@5.0.1"
+            "color-string@2.1.1"
+            "simple-swizzle@0.2.3"
+            "supports-hyperlinks@4.1.1"
+            "has-ansi@6.0.1"
+            "chalk-template@1.1.1"
+            "backslash@0.2.1"
+          )
+          
+          # Files to check
+          FILES_TO_CHECK=()
+          
+          # Check if package files exist and add them to the list
+          if [ -f "package.json" ]; then
+            FILES_TO_CHECK+=("package.json")
+          fi
+          
+          if [ -f "package-lock.json" ]; then
+            FILES_TO_CHECK+=("package-lock.json")
+          fi
+          
+          if [ -f "yarn.lock" ]; then
+            FILES_TO_CHECK+=("yarn.lock")
+          fi
+          
+          # Flag to track if any unwanted dependencies are found
+          FOUND_UNWANTED=false
+          
+          # Check each file for unwanted dependencies
+          for file in "${FILES_TO_CHECK[@]}"; do
+            echo "📁 Checking $file..."
+            
+            for dep in "${UNWANTED_DEPS[@]}"; do
+              # Extract package name and version from the dependency string
+              package_name=$(echo "$dep" | cut -d'@' -f1)
+              package_version=$(echo "$dep" | cut -d'@' -f2)
+              
+              # Check for different formats based on file type
+              if [[ "$file" == "package.json" ]]; then
+                # In package.json, look for "package_name": "version"
+                if grep -q "\"$package_name\":[[:space:]]*\"$package_version\"" "$file" 2>/dev/null; then
+                  echo "❌ BLOCKED: Found unwanted dependency $dep in $file"
+                  echo "📍 Matching lines:"
+                  grep -n "\"$package_name\":[[:space:]]*\"$package_version\"" "$file" || true
+                  FOUND_UNWANTED=true
+                fi
+              else
+                # In package-lock.json and yarn.lock, look for "package@version" format
+                if grep -q "\"$dep\"" "$file" 2>/dev/null; then
+                  echo "❌ BLOCKED: Found unwanted dependency $dep in $file"
+                  echo "📍 Matching lines:"
+                  grep -n "\"$dep\"" "$file" || true
+                  FOUND_UNWANTED=true
+                fi
+              fi
+            done
+          done
+          
+          # If unwanted dependencies were found, fail the workflow
+          if [ "$FOUND_UNWANTED" = true ]; then
+            echo ""
+            echo "🚨 WORKFLOW FAILED: Unwanted dependencies detected!"
+            echo "Please remove or update the blocked dependency versions listed above."
+            echo ""
+            echo "Blocked dependencies:"
+            printf '%s\n' "${UNWANTED_DEPS[@]}"
+            exit 1
+          else
+            echo "✅ No unwanted dependencies found. All checks passed!"
+          fi
